@@ -1,0 +1,73 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage{dmasproject}
+\usepackage{graphicx}
+\graphicspath{{images/}}
+
+% if you need additional LaTeX packages, add them here
+
+\title{State-of-the-art Homework Assignment}
+% sort your names alphabetically by last name
+\author{
+  Sam Reswinraj Abraham (s4248325)
+  \\
+  Amit Bharti (s4417526)
+  \\
+  Niels Burgler (s3665828)
+  \\
+  Abhishek Ramanathapura Satyanarayana (s4304675)
+}
+
+\begin{document}
+\maketitle
+
+\subsection*{1. What is the problem addressed?}
+    In the state of the art, \textbf{Modeling civil violence: An agent-based computational approach} which is our main reference, the following problems are addressed - 
+    \begin{itemize}
+        \item\underline{\textbf{Problem 1}}: A central authority seeks to suppress decentralized rebellion.
+        \item\underline{\textbf{Problem 2}}: A central authority seeks to suppress communal violence between two warring ethnic groups.
+    \end{itemize}
+    The model addressed the problems -
+    \begin{itemize}
+        \item without recognizing any political or social order being represented by the model.
+        \item with no emphasis in overthrowing of an existing order. 
+        \item with no emphasis to reconstruct any particular case in detail, but to generate certain characteristic phenomena and core dynamics that is involved.
+        \item the overall objective was about the dynamics of decentralized upheaval rather than its political substance.
+    \end{itemize}
+
+
+\subsection*{2. What is the state of the art concerning this problem?}
+    \begin{itemize}
+        \item Epstein, Joshua M. “Modeling Civil Violence: An Agent-Based Computational Approach,” in Generative Social Science, edited by Joshua M. Epstein, 247–270. Princeton: Princeton University Press, 2006. \underline{\url{https://doi.org/10.1073/pnas.092080199}}
+    \end{itemize}
+
+
+\subsection*{3. What is the new idea for addressing the problem?}
+    The author addressed the problem using - modeling of agents into cops and rebels. The model uses various parameters based on various attributes such as perceived legitimacy of the authority, perceived hardship, risk aversion, ratio of cops to rebel agents, vision radius, and jail term. The simulation is performed under varying conditions.
+
+
+\subsection*{4. What are the results (expected or established)?}
+    Despite the simplicity of the rules governing the behaviour of the rebel agents, the agents show complex behaviour at times. 
+    \\
+    The following behaviours are observed in Epstein's models -
+    \begin{itemize}
+        \item\underline{\textbf{Individual deceptive behaviour}}: The agents can quickly become quiet when cops are in their vicinity, only to become actively rebellious as soon as the cops move away.
+        \item\underline{\textbf{Catalytic local outbursts}}: Because of the random motion of both agents and cops, rebellions often happen in quick, local outbursts. In the low cop density zones due to random motion, the mildly aggrieved rebel agents become active to join the rebellion. The model consistently shows this behaviour, with almost entirely quiet periods alternating with local outbursts of many rebel agents.
+        \item\underline{\textbf{Perceived legitimacy reduction}}: The model shows that a small, incremental decrease of legitimacy does not increase the frequency of rebellion, while one sudden decrease instantly causes a rebellion to occur.
+        \item\underline{\textbf{Cop reduction}}: A small, incremental decrease of the cop density does cause a rebellion at a certain point. This way, the model shows us what tipping points cause an aggrieved population to start rebelling for problem 1.
+        
+        For problem 2, if the cops are suddenly removed, it can be shown with the model that there is competitive exclusion which eventually leads to genocide.
+        \item\underline{\textbf{Ethnic Cleansing}}: With high perceived legitimacy i.e. the mutual perception by each ethnic group of the others right to existence, coexistence is observed without the need for peacekeepers. When the parameters reach a certain threshold, local ethnic cleansing ultimately leading to total annihilation of one group by another is observed.
+    \end{itemize}
+
+
+\subsection*{5. What is the relevance of this work?}
+    Epstein's model shows us the inner workings of how and why a population transitions from being quiet to a state of rebellion. Especially, the changes that need to happen to start a rebellion can be seen clearly. The scenarios where ethnic cleansing happens is also observed in the simulation. This can help in the analysis - 
+    \begin{itemize}
+        \item Scenarios that can lead to rebellions.
+        \item Steps that can be taken to prevent rebellions.
+        \item Scenarios that can lead to ethnic cleansing among warring groups.
+        \item Steps that can be taken to prevent ethnic cleansing among warring groups.
+    \end{itemize} 
+
+
+\end{document}
