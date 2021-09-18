@@ -7,6 +7,12 @@ globals
 breed [rebels rebel]
 breed [cops cop]
 
+turtles-own
+[
+  movement-patch
+  active-in-vision
+]
+
 rebels-own
 [
   jailed?
@@ -16,13 +22,12 @@ rebels-own
   risk-aversion
   arrest-probability
   cops-in-vision
-  active-in-vision
   net-risk
+  jail-time
 ]
 
 cops-own
 [
-  active-in-vision
   target
 ]
 
@@ -66,18 +71,28 @@ to go
 end
 
 to agent-rule  ;; The agent rule and everything necesarry to use it
-  ask rebels [
-    set grievance hardship * (1 - legitimacy)                                                         ;; G = H(1-L)
-    set cops-in-vision count cops-on patches in-radius agent-vision                                   ;; C
-    set active-in-vision count (rebels-on patches in-radius agent-vision) with [ active? = true ]     ;; A
-    if active? = false [ set active-in-vision active-in-vision + 1 ]                                  ;; Count yourself if you did not already
-    set arrest-probability 1 - exp ( - k * (cops-in-vision / active-in-vision))                       ;; P = 1 - exp[-k(C/A)]
-    set net-risk risk-aversion * arrest-probability                                                   ;; N = RP
-    ifelse grievance - net-risk > t [ become-active ] [ become-quiet ]                                ;; If G - N > T
+  ask rebels
+  [
+     ifelse jail-time = 0
+    [
+      set grievance hardship * (1 - legitimacy)                                                         ;; G = H(1-L)
+      set cops-in-vision count cops-on patches in-radius agent-vision                                   ;; C
+      set active-in-vision 1 + count (rebels-on patches in-radius agent-vision) with [ active? = true and jailed? = false]     ;; A
+      set arrest-probability 1 - exp ( - k * (cops-in-vision / active-in-vision))                       ;; P = 1 - exp[-k(C/A)]
+      set net-risk risk-aversion * arrest-probability                                                   ;; N = RP
+      ifelse grievance - net-risk > t [ become-active ] [ become-quiet ]                                ;; If G - N > T
 
-    if one-of patches in-radius agent-vision with [not any? turtles-here] != nobody
-    [move-to one-of patches in-radius agent-vision with [not any? turtles-here]]
-  ]
+      set movement-patch one-of patches in-radius agent-vision with [not any? cops-here and not any? rebels-here with [ jailed? = false ] ]
+      if movement-patch != nobody
+      [move-to movement-patch]
+    ]
+    [
+      set jail-time jail-time - 1
+      if jail-time = 0 [
+        set jailed? false set color blue
+      ]
+    ]
+   ]
 end
 
 to become-active  ;; Change a rebel to active
@@ -93,16 +108,20 @@ end
 to cop-rule ;; The cop rule
   ask cops [
     set target one-of (rebels-on patches in-radius cop-vision) with [ active? = true ]
-    ifelse target != nobody [ move-to target arrest-target ]
-    [ if one-of patches in-radius cop-vision with [not any? turtles-here] != nobody
-    [move-to one-of patches in-radius cop-vision with [not any? turtles-here]] ]
+    ifelse target != nobody
+    [ set movement-patch target arrest-target ]
+    [ set movement-patch one-of patches in-radius cop-vision with [not any? cops-here and not any? rebels-here with [ jailed? = false ]]]
+    if movement-patch != nobody [ move-to movement-patch ]
   ]
 end
 
 to arrest-target
   ask target [
     set jailed? true
-    die
+    set color gray
+    ifelse maximum-jail-time = "infinity"
+    [set jail-time random 2147483647]                ;;As close to infinity as we can get
+    [set jail-time random maximum-jail-time-years]
    ]
 end
 @#$#@#$#@
@@ -174,7 +193,7 @@ initial-cop-density
 initial-cop-density
 0
 100
-0.04
+0.02
 0.01
 1
 NIL
@@ -204,7 +223,7 @@ cop-vision
 cop-vision
 0
 10
-1.5
+1.0
 0.1
 1
 NIL
@@ -219,7 +238,7 @@ agent-vision
 agent-vision
 0
 10
-1.5
+5.0
 0.1
 1
 NIL
@@ -234,7 +253,7 @@ maximum-jail-time-years
 maximum-jail-time-years
 0
 100
-15.0
+20.0
 1
 1
 years
@@ -273,18 +292,19 @@ PLOT
 462
 643
 Active Rebels
-Amount of rebels
 Time
+Amount
 0.0
 10.0
 0.0
 10.0
 true
-false
+true
 "" ""
 PENS
-"default" 1.0 0 -2674135 true "" "plot count rebels with [ active? = true ]"
-"pen-1" 1.0 0 -13345367 true "" "plot count rebels with [ active? = false ]"
+"Active" 1.0 0 -2674135 true "" "plot count rebels with [ active? = true and jailed? = false ]"
+"Quiet" 1.0 0 -13345367 true "" "plot count rebels with [ active? = false and jailed? = false ]"
+"Jailed" 1.0 0 -7500403 true "" "plot count rebels with [ jailed? = true ]"
 
 @#$#@#$#@
 ## WHAT IS IT?
