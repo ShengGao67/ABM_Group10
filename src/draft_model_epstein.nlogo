@@ -69,7 +69,8 @@ to agent-rule  ;; The agent rule and everything necesarry to use it
   ask rebels [
     set grievance hardship * (1 - legitimacy)                                                         ;; G = H(1-L)
     set cops-in-vision count cops-on patches in-radius agent-vision                                   ;; C
-    set active-in-vision 1 + count (rebels-on patches in-radius agent-vision) with [ active? = true ] ;; A
+    set active-in-vision count (rebels-on patches in-radius agent-vision) with [ active? = true ]     ;; A
+    if active? = false [ set active-in-vision active-in-vision + 1 ]                                  ;; Count yourself if you did not already
     set arrest-probability 1 - exp ( - k * (cops-in-vision / active-in-vision))                       ;; P = 1 - exp[-k(C/A)]
     set net-risk risk-aversion * arrest-probability                                                   ;; N = RP
     ifelse grievance - net-risk > t [ become-active ] [ become-quiet ]                                ;; If G - N > T
