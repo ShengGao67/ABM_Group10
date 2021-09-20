@@ -75,6 +75,13 @@ to agent-rule  ;; The agent rule and everything necesarry to use it
   [
      ifelse jail-time = 0
     [
+      if movement?
+      [
+        set movement-patch one-of patches in-radius agent-vision with [not any? cops-here and not any? rebels-here with [ jailed? = false ] ]
+        if movement-patch != nobody
+        [move-to movement-patch]
+      ]
+
       set grievance hardship * (1 - legitimacy)                                                         ;; G = H(1-L)
       set cops-in-vision count cops-on patches in-radius agent-vision                                   ;; C
       set active-in-vision 1 + count (rebels-on patches in-radius agent-vision) with [ active? = true and jailed? = false]     ;; A
@@ -82,12 +89,6 @@ to agent-rule  ;; The agent rule and everything necesarry to use it
       set net-risk risk-aversion * arrest-probability                                                   ;; N = RP
       ifelse grievance - net-risk > t [ become-active ] [ become-quiet ]                                ;; If G - N > T
 
-      if movement?
-      [
-        set movement-patch one-of patches in-radius agent-vision with [not any? cops-here and not any? rebels-here with [ jailed? = false ] ]
-        if movement-patch != nobody
-        [move-to movement-patch]
-      ]
     ]
     [
       set jail-time jail-time - 1
@@ -111,7 +112,14 @@ end
 
 to cop-rule ;; The cop rule
   ask cops [
-    set target one-of (rebels-on patches in-radius cop-vision) with [ active? = true ]
+    if movement?
+      [
+        set movement-patch one-of patches in-radius agent-vision with [not any? cops-here and not any? rebels-here with [ jailed? = false ] ]
+        if movement-patch != nobody
+        [move-to movement-patch]
+      ]
+
+    set target one-of (rebels-on patches in-radius cop-vision) with [ active? = true and jailed? = false ]
     ifelse target != nobody
     [ set movement-patch target arrest-target ]
     [ set movement-patch one-of patches in-radius cop-vision with [not any? cops-here and not any? rebels-here with [ jailed? = false ]]]
@@ -125,8 +133,9 @@ end
 to arrest-target
   ask target [
     set jailed? true
+    set active? false
     set color gray
-    ifelse maximum-jail-time = "infinity"
+    ifelse maximum-jail-time = "Infinity"
     [set jail-time random 2147483647]                ;; As close to infinity as we can get
     [set jail-time random maximum-jail-time-years]
    ]
@@ -193,15 +202,15 @@ HORIZONTAL
 
 SLIDER
 10
-96
+97
 210
-129
+130
 initial-cop-density
 initial-cop-density
 0
-100
+1
 0.04
-0.01
+0.001
 1
 NIL
 HORIZONTAL
@@ -215,7 +224,7 @@ legitimacy
 legitimacy
 0
 1
-0.89
+0.82
 0.01
 1
 NIL
@@ -260,7 +269,7 @@ maximum-jail-time-years
 maximum-jail-time-years
 0
 100
-15.0
+100.0
 1
 1
 years
@@ -320,7 +329,7 @@ SWITCH
 83
 movement?
 movement?
-1
+0
 1
 -1000
 
