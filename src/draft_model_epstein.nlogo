@@ -82,14 +82,18 @@ to agent-rule  ;; The agent rule and everything necesarry to use it
       set net-risk risk-aversion * arrest-probability                                                   ;; N = RP
       ifelse grievance - net-risk > t [ become-active ] [ become-quiet ]                                ;; If G - N > T
 
-      set movement-patch one-of patches in-radius agent-vision with [not any? cops-here and not any? rebels-here with [ jailed? = false ] ]
-      if movement-patch != nobody
-      [move-to movement-patch]
+      if movement?
+      [
+        set movement-patch one-of patches in-radius agent-vision with [not any? cops-here and not any? rebels-here with [ jailed? = false ] ]
+        if movement-patch != nobody
+        [move-to movement-patch]
+      ]
     ]
     [
       set jail-time jail-time - 1
       if jail-time = 0 [
-        set jailed? false set color blue
+        set jailed? false
+        ifelse active? [ set color red ]  [ set color blue ]
       ]
     ]
    ]
@@ -111,7 +115,10 @@ to cop-rule ;; The cop rule
     ifelse target != nobody
     [ set movement-patch target arrest-target ]
     [ set movement-patch one-of patches in-radius cop-vision with [not any? cops-here and not any? rebels-here with [ jailed? = false ]]]
-    if movement-patch != nobody [ move-to movement-patch ]
+    if movement?
+    [
+      if movement-patch != nobody [ move-to movement-patch ]
+    ]
   ]
 end
 
@@ -120,7 +127,7 @@ to arrest-target
     set jailed? true
     set color gray
     ifelse maximum-jail-time = "infinity"
-    [set jail-time random 2147483647]                ;;As close to infinity as we can get
+    [set jail-time random 2147483647]                ;; As close to infinity as we can get
     [set jail-time random maximum-jail-time-years]
    ]
 end
@@ -193,7 +200,7 @@ initial-cop-density
 initial-cop-density
 0
 100
-0.02
+0.04
 0.01
 1
 NIL
@@ -208,7 +215,7 @@ legitimacy
 legitimacy
 0
 1
-0.8
+0.89
 0.01
 1
 NIL
@@ -223,7 +230,7 @@ cop-vision
 cop-vision
 0
 10
-1.0
+1.7
 0.1
 1
 NIL
@@ -238,7 +245,7 @@ agent-vision
 agent-vision
 0
 10
-5.0
+1.7
 0.1
 1
 NIL
@@ -253,7 +260,7 @@ maximum-jail-time-years
 maximum-jail-time-years
 0
 100
-20.0
+15.0
 1
 1
 years
@@ -305,6 +312,17 @@ PENS
 "Active" 1.0 0 -2674135 true "" "plot count rebels with [ active? = true and jailed? = false ]"
 "Quiet" 1.0 0 -13345367 true "" "plot count rebels with [ active? = false and jailed? = false ]"
 "Jailed" 1.0 0 -7500403 true "" "plot count rebels with [ jailed? = true ]"
+
+SWITCH
+238
+50
+357
+83
+movement?
+movement?
+1
+1
+-1000
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -648,7 +666,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.2.0
+NetLogo 6.1.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
