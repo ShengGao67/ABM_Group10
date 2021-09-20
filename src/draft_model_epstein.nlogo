@@ -221,7 +221,7 @@ legitimacy
 legitimacy
 0
 1
-0.82
+0.9
 0.01
 1
 NIL
@@ -236,7 +236,7 @@ cop-vision
 cop-vision
 0
 10
-1.7
+7.0
 0.1
 1
 NIL
@@ -251,7 +251,7 @@ agent-vision
 agent-vision
 0
 10
-1.7
+7.0
 0.1
 1
 NIL
@@ -266,7 +266,7 @@ maximum-jail-time-years
 maximum-jail-time-years
 0
 100
-15.0
+10.0
 1
 1
 years
@@ -329,6 +329,24 @@ movement?
 0
 1
 -1000
+
+PLOT
+490
+436
+898
+670
+Active Rebels 2
+Time
+Amount
+0.0
+10.0
+0.0
+10.0
+true
+true
+"" ""
+PENS
+"default" 1.0 0 -2674135 true "" "plot count rebels with [ active? = true ]"
 
 @#$#@#$#@
 ## WHAT IS IT?
