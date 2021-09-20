@@ -75,6 +75,7 @@ to agent-rule  ;; The agent rule and everything necesarry to use it
   [
      ifelse jail-time = 0
     [
+      set jailed? false
       if movement?
       [
         set movement-patch one-of patches in-radius agent-vision with [not any? cops-here and not any? rebels-here with [ jailed? = false ] ]
@@ -92,10 +93,6 @@ to agent-rule  ;; The agent rule and everything necesarry to use it
     ]
     [
       set jail-time jail-time - 1
-      if jail-time = 0 [
-        set jailed? false
-        ifelse active? [ set color red ]  [ set color blue ]
-      ]
     ]
    ]
 end
@@ -142,13 +139,13 @@ to arrest-target
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-490
+487
 10
-898
-419
+901
+425
 -1
 -1
-10.0
+10.15
 1
 10
 1
@@ -269,7 +266,7 @@ maximum-jail-time-years
 maximum-jail-time-years
 0
 100
-100.0
+15.0
 1
 1
 years
@@ -318,8 +315,8 @@ true
 true
 "" ""
 PENS
-"Active" 1.0 0 -2674135 true "" "plot count rebels with [ active? = true and jailed? = false ]"
-"Quiet" 1.0 0 -13345367 true "" "plot count rebels with [ active? = false and jailed? = false ]"
+"Active" 1.0 0 -2674135 true "" "plot count rebels with [ active? = true ]"
+"Quiet" 1.0 0 -13345367 true "" "plot count rebels with [ active? = false ]"
 "Jailed" 1.0 0 -7500403 true "" "plot count rebels with [ jailed? = true ]"
 
 SWITCH
