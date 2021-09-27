@@ -69,23 +69,27 @@ to setup-patches
 end
 
 to go
-  agent-rule
-  cop-rule
+  ask turtles [
+    if (breed = rebels and jailed? = false) or breed = cops [ move-rule ]
+    if (breed = rebels) [ agent-rule ]
+    if (breed = cops) [ cop-rule ]
+  ]
   tick
 end
 
-to agent-rule  ;; The agent rule and everything necessary to use it
-  ask rebels
+to move-rule
+  if movement?
   [
+    if breed = rebels [ set movement-patch one-of patches in-radius agent-vision with [not any? cops-here and not any? rebels-here with [ jailed? = false ] ] ]
+    if breed = cops [ set movement-patch one-of patches in-radius cop-vision with [not any? cops-here and not any? rebels-here with [ jailed? = false ] ] ]
+    if movement-patch != nobody [move-to movement-patch]
+  ]
+end
+
+to agent-rule  ;; The agent rule and everything necessary to use it
      ifelse jail-time = 0
     [
       set jailed? false
-      if movement?
-      [
-        set movement-patch one-of patches in-radius agent-vision with [not any? cops-here and not any? rebels-here with [ jailed? = false ] ]
-        if movement-patch != nobody
-        [move-to movement-patch]
-      ]
 
       set grievance hardship * (1 - legitimacy)                                                         ;; G = H(1-L)
       set cops-in-vision count cops-on patches in-radius agent-vision                                   ;; C
@@ -94,10 +98,10 @@ to agent-rule  ;; The agent rule and everything necessary to use it
       ifelse news? = true [
         set cops-in-news-vision cops-in-vision + sum [ cops-in-vision ] of rebels with [ news? = true ]
         set active-in-news-vision active-in-vision + sum [ active-in-vision ] of rebels with [ news? = true ]
-        set arrest-probability 1 - exp ( - k * (cops-in-news-vision / active-in-news-vision))
+        set arrest-probability 1 - exp ( - k * floor (cops-in-news-vision / active-in-news-vision))
       ]
       [
-        set arrest-probability 1 - exp ( - k * (cops-in-vision / active-in-vision)) ;; P = 1 - exp[-k(C/A)]
+        set arrest-probability 1 - exp ( - k * floor  (cops-in-vision / active-in-vision)) ;; P = 1 - exp[-k(C/A)]
       ]
       set net-risk risk-aversion * arrest-probability                                                   ;; N = RP
       ifelse grievance - net-risk > t [ become-active ] [ become-quiet ]                                ;; If G - N > T
@@ -106,7 +110,6 @@ to agent-rule  ;; The agent rule and everything necessary to use it
     [
       set jail-time jail-time - 1
     ]
-   ]
 end
 
 to become-active  ;; Change a rebel to active
@@ -120,14 +123,6 @@ to become-quiet ;; Change a rebel to quiet
 end
 
 to cop-rule ;; The cop rule
-  ask cops [
-    if movement?
-      [
-        set movement-patch one-of patches in-radius agent-vision with [not any? cops-here and not any? rebels-here with [ jailed? = false ] ]
-        if movement-patch != nobody
-        [move-to movement-patch]
-      ]
-
     set target one-of (rebels-on patches in-radius cop-vision) with [ active? = true and jailed? = false ]
     ifelse target != nobody
     [ set movement-patch target arrest-target ]
@@ -136,7 +131,6 @@ to cop-rule ;; The cop rule
     [
       if movement-patch != nobody [ move-to movement-patch ]
     ]
-  ]
 end
 
 to arrest-target
@@ -171,8 +165,8 @@ GRAPHICS-WINDOW
 39
 0
 39
-0
-0
+1
+1
 1
 ticks
 30.0
@@ -233,7 +227,7 @@ legitimacy
 legitimacy
 0
 1
-0.89
+0.82
 0.01
 1
 NIL
@@ -248,7 +242,7 @@ cop-vision
 cop-vision
 0
 10
-1.5
+7.0
 0.1
 1
 NIL
@@ -263,7 +257,7 @@ agent-vision
 agent-vision
 0
 10
-1.5
+7.0
 0.1
 1
 NIL
@@ -278,7 +272,7 @@ maximum-jail-time-years
 maximum-jail-time-years
 0
 100
-10.0
+30.0
 1
 1
 years
@@ -312,10 +306,10 @@ NIL
 1
 
 PLOT
-10
-376
-462
-643
+2
+430
+454
+697
 Active Rebels
 Time
 Amount
@@ -369,19 +363,63 @@ news-ratio
 news-ratio
 0
 1
-0.05
+0.0
 0.01
 1
 NIL
 HORIZONTAL
 
 MONITOR
-268
-252
-462
-297
+217
+376
+298
+421
 Active Rebels
 count rebels with [active? = true]
+17
+1
+11
+
+MONITOR
+114
+377
+201
+422
+Jailed Agents
+count rebels with [ jailed? = true ]
+17
+1
+11
+
+MONITOR
+24
+373
+107
+418
+Quiet Rebels
+count rebels with [ active? = false ]
+17
+1
+11
+
+MONITOR
+241
+158
+341
+203
+Amount of cops
+count cops
+17
+1
+11
+
+MONITOR
+238
+211
+346
+256
+Amount of rebels
+count rebels
 17
 1
 11
