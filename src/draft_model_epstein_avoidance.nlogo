@@ -24,6 +24,7 @@ rebels-own
   cops-in-vision
   net-risk
   jail-time
+  percieved-legitimacy
 ]
 
 cops-own
@@ -56,6 +57,12 @@ to setup-turtles
     set active? false
     set hardship random-float 1
     set risk-aversion random-float 1
+    if percieved-legitimacy?
+    [
+      set percieved-legitimacy random-normal legitimacy 0.1
+      if percieved-legitimacy > 1.0 [ set percieved-legitimacy 1.0 ]
+      if percieved-legitimacy < 0.0 [ set percieved-legitimacy 0.0 ]
+    ]
   ]
   create-cops initial-cop-density * count patches
   [
@@ -80,7 +87,7 @@ to agent-rule  ;; The agent rule and everything necesarry to use it
   ask rebels
   [
     ifelse jail-time = 0
-    [
+    [ ;; Movement Part
       set jailed? false
       if movement != "Off"
       [
@@ -94,14 +101,21 @@ to agent-rule  ;; The agent rule and everything necesarry to use it
         if movement-patch != nobody
         [move-to movement-patch]
       ]
+      ;; Ask nearby rebels about their percieved legitimacy
+      if percieved-legitimacy? [
+        set percieved-legitimacy (percieved-legitimacy + [ percieved-legitimacy ] of one-of rebels in-radius agent-vision) / 2
+      ]
 
-      set grievance hardship * (1 - legitimacy)                                                         ;; G = H(1-L)
+      ;; Become active/quiet
+
+      ifelse percieved-legitimacy?
+      [ set grievance hardship * (1 - percieved-legitimacy) ]                ;; G = H(1-L)
+      [ set grievance hardship * (1 - legitimacy) ]
       set cops-in-vision count cops-on patches in-radius agent-vision                                   ;; C
       set active-in-vision 1 + count (rebels-on patches in-radius agent-vision) with [ active? = true and jailed? = false]     ;; A
       set arrest-probability 1 - exp ( - k * floor (cops-in-vision / active-in-vision))                       ;; P = 1 - exp[-k(C/A)]
       set net-risk risk-aversion * arrest-probability                                                   ;; N = RP
       ifelse grievance - net-risk > t [ become-active ] [ become-quiet ]                                ;; If G - N > T
-
     ]
     [
       set jail-time jail-time - 1
@@ -255,7 +269,7 @@ cop-vision
 cop-vision
 0
 10
-7.0
+10.0
 0.1
 1
 NIL
@@ -270,7 +284,7 @@ agent-vision
 agent-vision
 0
 10
-7.0
+10.0
 0.1
 1
 NIL
@@ -376,6 +390,28 @@ movement
 movement
 "Off" "Random" "Avoidance"
 2
+
+SWITCH
+240
+151
+414
+184
+percieved-legitimacy?
+percieved-legitimacy?
+0
+1
+-1000
+
+MONITOR
+242
+204
+421
+249
+Average Percieved Legitimacy
+mean [ percieved-legitimacy ] of rebels
+17
+1
+11
 
 @#$#@#$#@
 ## WHAT IS IT?
