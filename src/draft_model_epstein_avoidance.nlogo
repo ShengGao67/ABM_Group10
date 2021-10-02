@@ -82,10 +82,15 @@ to agent-rule  ;; The agent rule and everything necesarry to use it
     ifelse jail-time = 0
     [
       set jailed? false
-      if movement?
+      if movement != "Off"
       [
         let current-distance-from-cop [ distance-from-nearest-cop ] of patch-here
+        if movement = "Random" [
+          set movement-patch one-of patches in-radius agent-vision with [not any? cops-here and not any? rebels-here with [ jailed? = false ] ]
+        ]
+        if movement = "Avoidance" [
         set movement-patch one-of patches in-radius agent-vision with [not any? cops-here and not any? rebels-here with [ jailed? = false ] and distance-from-nearest-cop >= current-distance-from-cop]
+        ]
         if movement-patch != nobody
         [move-to movement-patch]
       ]
@@ -116,7 +121,7 @@ end
 
 to cop-rule ;; The cop rule
   ask cops [
-    if movement?
+    if movement != "Off"
       [
         set movement-patch one-of patches in-radius agent-vision with [not any? cops-here and not any? rebels-here with [ jailed? = false ] ]
         if movement-patch != nobody
@@ -127,7 +132,7 @@ to cop-rule ;; The cop rule
     ifelse target != nobody
     [ set movement-patch target arrest-target ]
     [ set movement-patch one-of patches in-radius cop-vision with [not any? cops-here and not any? rebels-here with [ jailed? = false ]]]
-    if movement?
+    if movement != "Off"
     [
       if movement-patch != nobody [ move-to movement-patch ]
     ]
@@ -333,17 +338,6 @@ PENS
 "Quiet" 1.0 0 -13345367 true "" "plot count rebels with [ active? = false ]"
 "Jailed" 1.0 0 -7500403 true "" "plot count rebels with [ jailed? = true ]"
 
-SWITCH
-238
-50
-357
-83
-movement?
-movement?
-0
-1
--1000
-
 PLOT
 490
 436
@@ -372,6 +366,16 @@ heatmap?
 0
 1
 -1000
+
+CHOOSER
+234
+50
+372
+95
+movement
+movement
+"Off" "Random" "Avoidance"
+2
 
 @#$#@#$#@
 ## WHAT IS IT?
