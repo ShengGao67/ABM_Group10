@@ -86,7 +86,7 @@ to agent-rule  ;; The agent rule and everything necesarry to use it
       set grievance hardship * (1 - legitimacy)                                                         ;; G = H(1-L)
       set cops-in-vision count cops-on patches in-radius agent-vision                                   ;; C
       set active-in-vision 1 + count (rebels-on patches in-radius agent-vision) with [ active? = true and jailed? = false]     ;; A
-      set arrest-probability 1 - exp ( - k * (cops-in-vision / active-in-vision))                       ;; P = 1 - exp[-k(C/A)]
+      set arrest-probability 1 - exp ( - k * floor (cops-in-vision / active-in-vision))                       ;; P = 1 - exp[-k(C/A)]
       set net-risk risk-aversion * arrest-probability                                                   ;; N = RP
       ifelse grievance - net-risk > t [ become-active ] [ become-quiet ]                                ;; If G - N > T
 
@@ -690,7 +690,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.1.1
+NetLogo 6.2.0
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
