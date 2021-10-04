@@ -24,11 +24,17 @@ rebels-own
   cops-in-vision
   net-risk
   jail-time
+  percieved-legitimacy
 ]
 
 cops-own
 [
   target
+]
+
+patches-own
+[
+  distance-from-nearest-cop
 ]
 
 to setup
@@ -51,6 +57,12 @@ to setup-turtles
     set active? false
     set hardship random-float 1
     set risk-aversion random-float 1
+    if percieved-legitimacy?
+    [
+      set percieved-legitimacy random-normal legitimacy 0.1
+      if percieved-legitimacy > 1.0 [ set percieved-legitimacy 1.0 ]
+      if percieved-legitimacy < 0.0 [ set percieved-legitimacy 0.0 ]
+    ]
   ]
   create-cops initial-cop-density * count patches
   [
@@ -67,29 +79,43 @@ end
 to go
   agent-rule
   cop-rule
+  update-patches
   tick
 end
 
 to agent-rule  ;; The agent rule and everything necesarry to use it
   ask rebels
   [
-     ifelse jail-time = 0
-    [
+    ifelse jail-time = 0
+    [ ;; Movement Part
       set jailed? false
-      if movement?
+      if movement != "Off"
       [
-        set movement-patch one-of patches in-radius agent-vision with [not any? cops-here and not any? rebels-here with [ jailed? = false ] ]
+        let current-distance-from-cop [ distance-from-nearest-cop ] of patch-here
+        if movement = "Random" [
+          set movement-patch one-of patches in-radius agent-vision with [not any? cops-here and not any? rebels-here with [ jailed? = false ] ]
+        ]
+        if movement = "Avoidance" [
+        set movement-patch one-of patches in-radius agent-vision with [not any? cops-here and not any? rebels-here with [ jailed? = false ] and distance-from-nearest-cop >= current-distance-from-cop]
+        ]
         if movement-patch != nobody
         [move-to movement-patch]
       ]
+      ;; Ask nearby rebels about their percieved legitimacy
+      if percieved-legitimacy? [
+        set percieved-legitimacy (percieved-legitimacy + [ percieved-legitimacy ] of one-of rebels in-radius agent-vision) / 2
+      ]
 
-      set grievance hardship * (1 - legitimacy)                                                         ;; G = H(1-L)
+      ;; Become active/quiet
+
+      ifelse percieved-legitimacy?
+      [ set grievance hardship * (1 - percieved-legitimacy) ]                ;; G = H(1-L)
+      [ set grievance hardship * (1 - legitimacy) ]
       set cops-in-vision count cops-on patches in-radius agent-vision                                   ;; C
       set active-in-vision 1 + count (rebels-on patches in-radius agent-vision) with [ active? = true and jailed? = false]     ;; A
       set arrest-probability 1 - exp ( - k * floor (cops-in-vision / active-in-vision))                       ;; P = 1 - exp[-k(C/A)]
       set net-risk risk-aversion * arrest-probability                                                   ;; N = RP
       ifelse grievance - net-risk > t [ become-active ] [ become-quiet ]                                ;; If G - N > T
-
     ]
     [
       set jail-time jail-time - 1
@@ -109,7 +135,7 @@ end
 
 to cop-rule ;; The cop rule
   ask cops [
-    if movement?
+    if movement != "Off"
       [
         set movement-patch one-of patches in-radius agent-vision with [not any? cops-here and not any? rebels-here with [ jailed? = false ] ]
         if movement-patch != nobody
@@ -120,7 +146,7 @@ to cop-rule ;; The cop rule
     ifelse target != nobody
     [ set movement-patch target arrest-target ]
     [ set movement-patch one-of patches in-radius cop-vision with [not any? cops-here and not any? rebels-here with [ jailed? = false ]]]
-    if movement?
+    if movement != "Off"
     [
       if movement-patch != nobody [ move-to movement-patch ]
     ]
@@ -136,6 +162,13 @@ to arrest-target
     [set jail-time random 2147483647]                ;; As close to infinity as we can get
     [set jail-time random maximum-jail-time-years]
    ]
+end
+
+to update-patches
+  ask patches [
+    set distance-from-nearest-cop distance min-one-of cops [ distance myself ]
+    ifelse heatmap? [ set pcolor scale-color orange distance-from-nearest-cop -10 10 ] [ set pcolor 39 ]
+  ]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -159,8 +192,8 @@ GRAPHICS-WINDOW
 39
 0
 39
-0
-0
+1
+1
 1
 ticks
 30.0
@@ -221,7 +254,7 @@ legitimacy
 legitimacy
 0
 1
-0.9
+0.83
 0.01
 1
 NIL
@@ -236,7 +269,7 @@ cop-vision
 cop-vision
 0
 10
-7.0
+10.0
 0.1
 1
 NIL
@@ -251,7 +284,7 @@ agent-vision
 agent-vision
 0
 10
-7.0
+10.0
 0.1
 1
 NIL
@@ -319,17 +352,6 @@ PENS
 "Quiet" 1.0 0 -13345367 true "" "plot count rebels with [ active? = false ]"
 "Jailed" 1.0 0 -7500403 true "" "plot count rebels with [ jailed? = true ]"
 
-SWITCH
-238
-50
-357
-83
-movement?
-movement?
-0
-1
--1000
-
 PLOT
 490
 436
@@ -347,6 +369,49 @@ true
 "" ""
 PENS
 "default" 1.0 0 -2674135 true "" "plot count rebels with [ active? = true ]"
+
+SWITCH
+236
+103
+346
+136
+heatmap?
+heatmap?
+0
+1
+-1000
+
+CHOOSER
+234
+50
+372
+95
+movement
+movement
+"Off" "Random" "Avoidance"
+2
+
+SWITCH
+240
+151
+414
+184
+percieved-legitimacy?
+percieved-legitimacy?
+0
+1
+-1000
+
+MONITOR
+242
+204
+421
+249
+Average Percieved Legitimacy
+mean [ percieved-legitimacy ] of rebels
+17
+1
+11
 
 @#$#@#$#@
 ## WHAT IS IT?
