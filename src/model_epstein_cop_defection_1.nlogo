@@ -3,13 +3,11 @@ globals
   k
   t
   z
-  defect-t
-  Benefits
+  cop-defect-threshold
 ]
 
 breed [rebels rebel]
 breed [cops cop]
-breed [Dcops Dcop]
 
 turtles-own
 [
@@ -21,34 +19,33 @@ rebels-own
 [
   jailed?
   active?
-  hardship
+  r-hardship
   grievance
   risk-aversion
   arrest-probability
   cops-in-vision
-  Dcops-in-vision
   net-risk
   jail-time
+  perceived-legitimacy
 ]
 
 cops-own
 [
   target
-  grievance
-  hardship
+  c-hardship
+  c-grievance
+  c-bias
+  c-greed
+  c-tendency-greed
+  c-tendency-grievance
+  c-tendency-avg
+  c-prob-defect
   not-defected?
-  Bias
-  Greed
-  Tdg
-  Tg
-  Tavg
-  Pdf
 ]
 
-dcops-own
+patches-own
 [
-  dcop_hardship
-  not-defected?
+  distance-from-nearest-cop
 ]
 
 to setup
@@ -56,8 +53,7 @@ to setup
   set k 2.3
   set t 0.1
   set z 1.8
-  set defect-t 0.2
-  set Benefits random-float 1
+  set cop-defect-threshold 0.7
   setup-turtles
   setup-patches
   reset-ticks
@@ -72,28 +68,38 @@ to setup-turtles
     set size 0.9
     set jailed? false
     set active? false
-    set hardship random-float 1
+    set r-hardship random-float 1
     set risk-aversion random-float 1
+    if perceived-legitimacy?
+    [
+      set perceived-legitimacy random-normal legitimacy 0.1
+      if perceived-legitimacy > 1.0 [ set perceived-legitimacy 1.0 ]
+      if perceived-legitimacy < 0.0 [ set perceived-legitimacy 0.0 ]
+    ]
   ]
 
-  ;; Non defection cops
-  create-cops (initial-cop-density * (100 - initial-defect-cop-percent) / 100) * count patches
+  ; non-defection cop candidates
+  create-cops (initial-cop-density * (100 - defect-cop-candidates-percent) / 100) * count patches
   [
     move-to one-of patches with [not any? turtles-here]
     set color black
     set size 0.9
-    set hardship random-float 0.5
+    set c-hardship random-float 0.5
+    set c-bias random-float 0.5
+    set c-greed random-float 0.5
     set not-defected? true
   ]
 
-  ;; Plausible defection cops
-  create-Dcops initial-cop-density * (initial-defect-cop-percent / 100) * count patches
+  ;; plausible defection cop candidates
+  create-cops initial-cop-density * (defect-cop-candidates-percent / 100) * count patches
   [
     move-to one-of patches with [not any? turtles-here]
-    set color lime
+    set color black
     set size 0.9
-    set dcop_hardship 0.5 + random-float 0.5
-    set not-defected? false
+    set c-hardship 0.5 + random-float 0.5
+    set c-bias 0.7 + random-float 0.3
+    set c-greed 0.5 + random-float 0.5
+    set not-defected? true
   ]
 end
 
@@ -104,7 +110,7 @@ end
 to go
   agent-rule
   cop-rule
-  Dcop-rule
+  update-patches
   tick
 end
 
@@ -112,23 +118,35 @@ to agent-rule  ;; The agent rule and everything necesarry to use it
   ask rebels
   [
     ifelse jail-time = 0
-    [
+    [ ;; Movement Part
       set jailed? false
-      if movement?
+      if movement != "Off"
       [
-        set movement-patch one-of patches in-radius agent-vision with [not any? cops-here and not any? Dcops-here and not any? rebels-here with [ jailed? = false ] ]
+        let current-distance-from-cop [ distance-from-nearest-cop ] of patch-here
+        if movement = "Random" [
+          set movement-patch one-of patches in-radius agent-vision with [not any? cops-here and not any? rebels-here with [ jailed? = false ] ]
+        ]
+        if movement = "Avoidance" [
+        set movement-patch one-of patches in-radius agent-vision with [not any? cops-here and not any? rebels-here with [ jailed? = false ] and distance-from-nearest-cop >= current-distance-from-cop]
+        ]
         if movement-patch != nobody
         [move-to movement-patch]
       ]
+      ;; Ask nearby rebels about their perceived legitimacy
+      if perceived-legitimacy? [
+        set perceived-legitimacy (perceived-legitimacy + [ perceived-legitimacy ] of one-of rebels in-radius agent-vision) / 2
+      ]
 
-      set grievance hardship * (1 - legitimacy)                                                                     ;; G = H(1-L)
-      set Dcops-in-vision count Dcops-on patches in-radius agent-vision                                             ;; C
-      set cops-in-vision count cops-on patches in-radius agent-vision
+      ;; Become active/quiet
+
+      ifelse perceived-legitimacy?
+      [ set grievance r-hardship * (1 - perceived-legitimacy) ]                ;; G = H(1-L)
+      [ set grievance r-hardship * (1 - legitimacy) ]
+      set cops-in-vision count cops-on patches in-radius agent-vision                                   ;; C
       set active-in-vision 1 + count (rebels-on patches in-radius agent-vision) with [ active? = true and jailed? = false]     ;; A
-      set arrest-probability 1 - exp ( - k * (cops-in-vision / active-in-vision))                       ;; P = 1 - exp[-k(C/A)]
+      set arrest-probability 1 - exp ( - k * floor (cops-in-vision / active-in-vision))                       ;; P = 1 - exp[-k(C/A)]
       set net-risk risk-aversion * arrest-probability                                                   ;; N = RP
       ifelse grievance - net-risk > t [ become-active ] [ become-quiet ]                                ;; If G - N > T
-
     ]
     [
       set jail-time jail-time - 1
@@ -136,6 +154,15 @@ to agent-rule  ;; The agent rule and everything necesarry to use it
    ]
 end
 
+to cop-become-non-defect ;; Change a cop from defection to non-defection
+  set color black
+  set not-defected? true
+end
+
+to cop-become-defect  ;; Change a cop to defect based on grievance
+  set color lime
+  set not-defected? false
+end
 
 to become-active  ;; Change a rebel to active
   set color red
@@ -149,63 +176,35 @@ end
 
 to cop-rule ;; The cop rule
   ask cops [
+    if movement != "Off"
+      [
+        set movement-patch one-of patches in-radius agent-vision with [not any? cops-here and not any? rebels-here with [ jailed? = false ] ]
+        if movement-patch != nobody
+        [move-to movement-patch]
+      ]
 
-    if movement?
-    [
-      set movement-patch one-of patches in-radius agent-vision with [not any? cops-here and not any? Dcops-here and not any? rebels-here with [ jailed? = false ] ]
-      if movement-patch != nobody
-      [move-to movement-patch]
-    ]
+    set c-tendency-greed (1 - cop-benefits) * c-greed
+    set c-tendency-grievance c-hardship * (1 - cop-perceived-legitimacy)
+    set c-tendency-avg (c-tendency-greed + c-tendency-grievance) / 2
+    set c-prob-defect 1 - exp(- z * floor(c-bias / (1 - c-tendency-avg)))
 
-    set Tdg hardship * (1 - legitimacy) ;; G = H (1 - L) ;; the same formulation as used for rebels
-    set Bias random-float 1
-    set Greed random-float 1
-    set Tg (1 - Benefits) * Greed
-    set Tavg (Tdg + Tg)/ 2
-    set Pdf 1 - exp ( - ((z * Bias )/ (1 - Tavg)))
-    ifelse Pdf > defect-t
-    [become-defect]
-    [become-non-defect]
+    ifelse c-prob-defect > cop-defect-threshold
+    [cop-become-defect]
+    [cop-become-non-defect]
 
     if not-defected?
     [
       set target one-of (rebels-on patches in-radius cop-vision) with [ active? = true and jailed? = false ]
       ifelse target != nobody
       [ set movement-patch target arrest-target ]
-      [ set movement-patch one-of patches in-radius cop-vision with [not any? cops-here and not any? Dcops-here and not any? rebels-here with [ jailed? = false ]]]
-      if movement?
+      [ set movement-patch one-of patches in-radius cop-vision with [not any? cops-here and not any? rebels-here with [ jailed? = false ]]]
+      if movement != "Off"
       [
         if movement-patch != nobody [ move-to movement-patch ]
       ]
     ]
   ]
 end
-
-to become-non-defect ;; Change a cop from defection to non-defection
-  set color black
-  set not-defected? true
-end
-
-to become-defect  ;; Change a cop to defect based on grievance
-  set color lime
-  set breed Dcops
-   set not-defected? false
-end
-
-to Dcop-rule ;; The Dcop rule
-  ask Dcops [
-
-    if movement?
-    [
-      set movement-patch one-of patches in-radius agent-vision with [not any? cops-here and not any? Dcops-here and not any? rebels-here with [ jailed? = false ] ]
-      if movement-patch != nobody
-      [move-to movement-patch]
-    ]
-  ]
-end
-
-
-
 
 to arrest-target
   ask target [
@@ -215,17 +214,24 @@ to arrest-target
     ifelse maximum-jail-time = "Infinity"
     [set jail-time random 2147483647]                ;; As close to infinity as we can get
     [set jail-time random maximum-jail-time-years]
+   ]
+end
+
+to update-patches
+  ask patches [
+    set distance-from-nearest-cop distance min-one-of cops [ distance myself ]
+    ifelse heatmap? [ set pcolor scale-color orange distance-from-nearest-cop -10 10 ] [ set pcolor 39 ]
   ]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-659
-10
-1114
+1069
+51
+1483
 466
 -1
 -1
-11.18
+10.15
 1
 10
 1
@@ -239,8 +245,8 @@ GRAPHICS-WINDOW
 39
 0
 39
-0
-0
+1
+1
 1
 ticks
 30.0
@@ -271,7 +277,7 @@ initial-population-density
 initial-population-density
 0
 1
-0.54
+0.7
 0.01
 1
 NIL
@@ -286,7 +292,7 @@ initial-cop-density
 initial-cop-density
 0
 1
-0.193
+0.04
 0.001
 1
 NIL
@@ -301,7 +307,7 @@ legitimacy
 legitimacy
 0
 1
-0.5
+0.8
 0.01
 1
 NIL
@@ -316,7 +322,7 @@ cop-vision
 cop-vision
 0
 10
-7.0
+6.0
 0.1
 1
 NIL
@@ -331,7 +337,7 @@ agent-vision
 agent-vision
 0
 10
-7.0
+3.0
 0.1
 1
 NIL
@@ -380,10 +386,10 @@ NIL
 1
 
 PLOT
-328
-378
-645
-590
+647
+20
+1050
+282
 Active Rebels
 Time
 Amount
@@ -399,22 +405,11 @@ PENS
 "Quiet" 1.0 0 -13345367 true "" "plot count rebels with [ active? = false ]"
 "Jailed" 1.0 0 -7500403 true "" "plot count rebels with [ jailed? = true ]"
 
-SWITCH
-238
-50
-357
-83
-movement?
-movement?
-0
-1
--1000
-
 PLOT
-243
-137
-651
-371
+646
+292
+1054
+526
 Active Rebels 2
 Time
 Amount
@@ -428,61 +423,93 @@ true
 PENS
 "default" 1.0 0 -2674135 true "" "plot count rebels with [ active? = true ]"
 
+SWITCH
+236
+103
+346
+136
+heatmap?
+heatmap?
+1
+1
+-1000
+
+CHOOSER
+234
+50
+372
+95
+movement
+movement
+"Off" "Random" "Avoidance"
+1
+
+SWITCH
+240
+151
+414
+184
+perceived-legitimacy?
+perceived-legitimacy?
+0
+1
+-1000
+
+MONITOR
+242
+204
+421
+249
+Average Perceived Legitimacy
+mean [ perceived-legitimacy ] of rebels
+17
+1
+11
+
 SLIDER
-229
-96
-423
-129
-initial-defect-cop-percent
-initial-defect-cop-percent
+369
+335
+590
+368
+defect-cop-candidates-percent
+defect-cop-candidates-percent
 0
 100
-0.0
-5
+10.0
+1
 1
 NIL
 HORIZONTAL
 
-PLOT
-5
-380
-316
-589
-Defected Cops
-TIme
-Amount
-0.0
-10.0
-0.0
-10.0
-true
-true
-"" ""
-PENS
-"not-defected" 1.0 0 -16777216 true "" "plot count cops with [ not-defected? = true ]"
-"defected" 1.0 0 -13840069 true "" "plot count Dcops with [not-defected? = false]"
-
-MONITOR
-511
-46
-593
-91
-NIL
-count cops
-17
+SLIDER
+32
+410
+204
+443
+cop-benefits
+cop-benefits
+0
 1
-11
+0.4
+0.01
+1
+NIL
+HORIZONTAL
 
-MONITOR
+SLIDER
+285
 399
-34
-489
-79
-NIL
-count dcops
-17
+472
+432
+cop-perceived-legitimacy
+cop-perceived-legitimacy
+0
 1
-11
+0.9
+0.01
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?
