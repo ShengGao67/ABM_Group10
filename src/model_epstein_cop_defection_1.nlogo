@@ -79,7 +79,7 @@ to setup-turtles
   ]
 
   ; non-defection cop candidates
-  create-cops (initial-cop-density * (100 - defect-cop-candidates-percent) / 100) * count patches
+  create-cops floor((initial-cop-density * (100 - defect-cop-candidates-percent) / 100) * count patches)
   [
     move-to one-of patches with [not any? turtles-here]
     set color black
@@ -91,7 +91,7 @@ to setup-turtles
   ]
 
   ;; plausible defection cop candidates
-  create-cops initial-cop-density * (defect-cop-candidates-percent / 100) * count patches
+  create-cops ceiling(initial-cop-density * (defect-cop-candidates-percent / 100) * count patches)
   [
     move-to one-of patches with [not any? turtles-here]
     set color black
@@ -292,7 +292,7 @@ initial-cop-density
 initial-cop-density
 0
 1
-0.04
+0.049
 0.001
 1
 NIL
@@ -458,9 +458,9 @@ perceived-legitimacy?
 MONITOR
 242
 204
-421
+448
 249
-Average Perceived Legitimacy
+Average rebel perceived legitimacy
 mean [ perceived-legitimacy ] of rebels
 17
 1
@@ -475,7 +475,7 @@ defect-cop-candidates-percent
 defect-cop-candidates-percent
 0
 100
-10.0
+25.0
 1
 1
 NIL
@@ -490,7 +490,7 @@ cop-benefits
 cop-benefits
 0
 1
-0.4
+0.79
 0.01
 1
 NIL
@@ -505,11 +505,55 @@ cop-perceived-legitimacy
 cop-perceived-legitimacy
 0
 1
-0.9
+0.38
 0.01
 1
 NIL
 HORIZONTAL
+
+MONITOR
+294
+465
+432
+510
+defect-cop-candidates
+ceiling(initial-cop-density * (defect-cop-candidates-percent / 100) * count patches)
+17
+1
+11
+
+MONITOR
+294
+523
+443
+568
+non-defect-cop-candidates
+floor((initial-cop-density * (100 - defect-cop-candidates-percent) / 100) * count patches)
+17
+1
+11
+
+MONITOR
+453
+465
+584
+510
+total-cops
+floor(initial-cop-density * count patches)
+1
+1
+11
+
+MONITOR
+84
+527
+254
+572
+defected-cops
+count cops with [ not-defected? = false ]
+17
+1
+11
 
 @#$#@#$#@
 ## WHAT IS IT?
