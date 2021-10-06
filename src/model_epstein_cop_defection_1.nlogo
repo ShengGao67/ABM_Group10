@@ -85,7 +85,7 @@ to setup-turtles
     set color black
     set size 0.9
     set c-hardship random-float 0.5
-    set c-bias random-float 0.5
+    set c-bias random-float 0.7
     set c-greed random-float 0.5
     set not-defected? true
   ]
