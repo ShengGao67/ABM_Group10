@@ -142,7 +142,7 @@ to agent-rule  ;; The agent rule and everything necesarry to use it
       ifelse perceived-legitimacy?
       [ set grievance r-hardship * (1 - perceived-legitimacy) ]                ;; G = H(1-L)
       [ set grievance r-hardship * (1 - legitimacy) ]
-      set cops-in-vision count cops-on patches in-radius agent-vision                                   ;; C
+      set cops-in-vision count (cops-on patches in-radius agent-vision) with [not-defected? = true]                                 ;; C
       set active-in-vision 1 + count (rebels-on patches in-radius agent-vision) with [ active? = true and jailed? = false]     ;; A
       set arrest-probability 1 - exp ( - k * floor (cops-in-vision / active-in-vision))                       ;; P = 1 - exp[-k(C/A)]
       set net-risk risk-aversion * arrest-probability                                                   ;; N = RP
@@ -475,7 +475,7 @@ defect-cop-candidates-percent
 defect-cop-candidates-percent
 0
 100
-25.0
+15.0
 1
 1
 NIL
@@ -490,7 +490,7 @@ cop-benefits
 cop-benefits
 0
 1
-0.79
+0.8
 0.01
 1
 NIL
@@ -505,7 +505,7 @@ cop-perceived-legitimacy
 cop-perceived-legitimacy
 0
 1
-0.38
+0.74
 0.01
 1
 NIL
