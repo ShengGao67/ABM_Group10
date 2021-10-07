@@ -10,7 +10,6 @@ globals
   a4
   c1
   c2
-
 ]
 
 breed [rebels rebel]
@@ -61,13 +60,13 @@ patches-own
 
 to setup
   clear-all
-  if initial-population-density + initial-cop-density >= 1.0 [ error "Population density + Cop density should not be equal to or larger than 1.0" stop ]
+  if initial-rebel-density + initial-cop-density >= 1.0 [ error "Population density + Cop density should not be equal to or larger than 1.0" stop ]
   set k 2.3
   set t 0.1
   set z 1.8
   set a1 0.2
-  set a2 0.2
-  set a3 0.3
+  set a2 0.25
+  set a3 0.25
   set a4 0.3
   set c1 0.6
   set c2 0.4
@@ -80,7 +79,7 @@ end
 
 to setup-turtles
   set-default-shape turtles "circle"
-  create-rebels initial-population-density * count patches
+  create-rebels initial-rebel-density * count patches
   [
     move-to one-of patches with [not any? turtles-here]
     set color blue
@@ -89,7 +88,7 @@ to setup-turtles
     set active? false
     set r-hardship random-float 1
     set risk-aversion random-float 1
-    if perceived-legitimacy?
+    if rebel-perceived-legitimacy?
     [
       set perceived-legitimacy random-normal legitimacy 0.1
       if perceived-legitimacy > 1.0 [ set perceived-legitimacy 1.0 ]
@@ -123,25 +122,31 @@ to setup-turtles
   ]
   ask n-of 200 rebels [
     set team 1
-    set color 103
-    set shape "team-one"
+    if rebel-movement = "Custom" and friends? [
+      set color blue
+      set shape "team-one"
+    ]
   ]
   ask n-of 200 rebels [
     set team 2
-    set color 103
-    set shape "team-two"
+    if rebel-movement = "Custom" and friends? [
+      set color blue
+      set shape "team-two"
+    ]
   ]
   ask n-of 200 rebels [
     set team 3
-    set color 103
-    set shape "team-three"
+    if rebel-movement = "Custom" and friends? [
+      set color blue
+      set shape "team-three"
+    ]
   ]
   ask n-of 200 rebels [
-    set color 103
-    set shape "team-four"
-
+    if rebel-movement = "Custom" and friends? [
+      set color blue
+      set shape "team-four"
+    ]
   ]
-
 end
 
 to setup-patches
@@ -152,25 +157,25 @@ to setup-patches
   ]
   ask n-of 6 patches [  ;; Retail shop
     ask patches in-radius 1.5 [
-      if movement-agent = "Custom" [ set pcolor 58 ]
+      if rebel-movement = "Custom" and add-areas? [ set pcolor 58 ]
       set area-value 4
     ]
   ]
   ask n-of 3 patches with [ area-value = 0 ] [  ;; Government building
     ask patches in-radius 1.5 [
-      if movement-agent = "Custom" [ set pcolor 53 ]
+      if rebel-movement = "Custom" and add-areas? [ set pcolor 53 ]
       set area-value 10
     ]
   ]
   ask n-of 2 patches with [ area-value = 0 ] [  ;; Police station
     ask patches in-radius 1.5 [
-      if movement-agent = "Custom" [ set pcolor 44 ]
+      if rebel-movement = "Custom" and add-areas? [ set pcolor 44 ]
       set area-value -10
     ]
   ]
   ask n-of 2 patches with [ area-value = 0 ] [  ;; Park
     ask patches in-radius 2.9 [
-      if movement-agent = "Custom" [ set pcolor 55 ]
+      if rebel-movement = "Custom" and add-areas? [ set pcolor 55 ]
       set area-value 6
     ]
   ]
@@ -179,7 +184,7 @@ end
 to go
   agent-rule
   cop-rule
-  update-patches
+  update-view
   tick
 end
 
@@ -189,34 +194,24 @@ to agent-rule  ;; The agent rule and everything necesarry to use it
     ifelse jail-time = 0
     [ ;; Movement Part
       set jailed? false
-      if movement-agent != "Off"
+      if rebel-movement != "Off"
       [
-        let current-distance-from-cop [ distance-from-nearest-cop ] of patch-here
-        if movement-agent = "Custom"
-        [
         rebel-movement-rule
-        ]
-        if movement-agent = "Random" [
-          set movement-patch one-of patches in-radius agent-vision with [not any? cops-here and not any? rebels-here with [ jailed? = false ] ]
-        ]
-        if movement-agent = "Avoidance" [
-        set movement-patch one-of patches in-radius agent-vision with [not any? cops-here and not any? rebels-here with [ jailed? = false ] and distance-from-nearest-cop >= current-distance-from-cop]
-        ]
         if movement-patch != nobody
         [move-to movement-patch]
       ]
       ;; Ask nearby rebels about their perceived legitimacy
-      if perceived-legitimacy? [
-        set perceived-legitimacy (perceived-legitimacy + [ perceived-legitimacy ] of one-of rebels in-radius agent-vision) / 2
+      if rebel-perceived-legitimacy? [
+        set perceived-legitimacy (perceived-legitimacy + [ perceived-legitimacy ] of one-of rebels in-radius rebel-vision) / 2
       ]
 
       ;; Become active/quiet
 
-      ifelse perceived-legitimacy?
+      ifelse rebel-perceived-legitimacy?
       [ set grievance r-hardship * (1 - perceived-legitimacy) ]                ;; G = H(1-L)
       [ set grievance r-hardship * (1 - legitimacy) ]
-      set cops-in-vision count (cops-on patches in-radius agent-vision) with [not-defected? = true]                                 ;; C
-      set active-in-vision 1 + count (rebels-on patches in-radius agent-vision) with [ active? = true and jailed? = false]     ;; A
+      set cops-in-vision count (cops-on patches in-radius rebel-vision) with [not-defected? = true]                                 ;; C
+      set active-in-vision 1 + count (rebels-on patches in-radius rebel-vision) with [ active? = true and jailed? = false]     ;; A
       set arrest-probability 1 - exp ( - k * floor (cops-in-vision / active-in-vision))                       ;; P = 1 - exp[-k(C/A)]
       set net-risk risk-aversion * arrest-probability                                                   ;; N = RP
       ifelse grievance - net-risk > t [ become-active ] [ become-quiet ]                                ;; If G - N > T
@@ -238,26 +233,20 @@ to cop-become-defect  ;; Change a cop to defect based on grievance
 end
 
 to become-active  ;; Change a rebel to active
-  ifelse team != 0 [ set color 13 ] [ set color red ]
+  set color red
   set active? true
 end
 
 to become-quiet ;; Change a rebel to quiet
-  ifelse team != 0 [ set color 103 ] [ set color blue ]
+  set color blue
   set active? false
 end
 
 to cop-rule ;; The cop rule
   ask cops [
-    if movement-cop != "Off"
+    if cop-movement != "Off"
       [
-       if movement-cop = "Custom"
-       [
         cop-movement-rule
-       ]
-        if movement-cop = "Random" [
-        set movement-patch one-of patches in-radius agent-vision with [not any? cops-here and not any? rebels-here with [ jailed? = false ] ]
-        ]
         if movement-patch != nobody
         [move-to movement-patch]
       ]
@@ -277,7 +266,7 @@ to cop-rule ;; The cop rule
       ifelse target != nobody
       [ set movement-patch target arrest-target ]
       [ set movement-patch one-of patches in-radius cop-vision with [not any? cops-here and not any? rebels-here with [ jailed? = false ]]]
-      if movement-cop != "Off"
+      if cop-movement != "Off"
       [
         if movement-patch != nobody [ move-to movement-patch ]
       ]
@@ -299,35 +288,63 @@ end
 
 to rebel-movement-rule
   ;; a1 * area-value - a2(distance-2*friend) - a3(e^(arrest_probability)  + jail term)
-  ask patches in-radius agent-vision [
-    let current-team [ team ] of myself
-    let cops-in-new-vision count cops-on patches in-radius agent-vision
-    ;let active-in-new-vision count rebels-on patches in-radius agent-vision
-    ;let new-arrest-probability 1 - exp ( - k * floor (cops-in-new-vision / active-in-new-vision))
-    let friends-in-new-vision 0
-    ( ifelse current-team = 0 [ set friends-in-new-vision 0 ]
-             current-team = 1 [ set friends-in-new-vision count rebels in-radius 2 with [ team = 1 and jailed? = false ] ]
-             current-team = 2 [ set friends-in-new-vision count rebels in-radius 2 with [ team = 2 and jailed? = false ] ]
-             current-team = 3 [ set friends-in-new-vision count rebels in-radius 2 with [ team = 3 and jailed? = false ] ]
-             current-team = 4 [ set friends-in-new-vision count rebels in-radius 2 with [ team = 4 and jailed? = false ] ]
-    )
-    let distance-to-patch distance myself
-    set total-value a1 * area-value - a2 * ( distance-to-patch - friends-in-new-vision ) - a3 * ( cops-in-new-vision)
+  if rebel-movement = "Random" [
+    set movement-patch one-of patches in-radius rebel-vision with [not any? cops-here and not any? rebels-here with [ jailed? = false ] ]
   ]
-  let current-distance-from-cop [ distance-from-nearest-cop ] of patch-here
-  set movement-patch max-one-of patches in-radius agent-vision with [not any? cops-here and not any? rebels-here with [ jailed? = false ] and distance-from-nearest-cop >= current-distance-from-cop ] [ total-value ]
+
+  if rebel-movement = "Avoidance" [
+    let current-distance-from-cop [ distance-from-nearest-cop ] of patch-here
+    set movement-patch one-of patches in-radius rebel-vision with [not any? cops-here and not any? rebels-here with [ jailed? = false ] and distance-from-nearest-cop >= current-distance-from-cop]
+  ]
+
+  if rebel-movement = "Custom" [
+    ask patches in-radius rebel-vision [
+      let current-team [ team ] of myself
+
+      let friends-in-new-vision 0
+      ( ifelse current-team = 0 [ set friends-in-new-vision 0 ]
+        current-team = 1 [ set friends-in-new-vision count rebels in-radius 2 with [ team = 1 and jailed? = false ] ]
+        current-team = 2 [ set friends-in-new-vision count rebels in-radius 2 with [ team = 2 and jailed? = false ] ]
+        current-team = 3 [ set friends-in-new-vision count rebels in-radius 2 with [ team = 3 and jailed? = false ] ]
+        current-team = 4 [ set friends-in-new-vision count rebels in-radius 2 with [ team = 4 and jailed? = false ] ]
+      )
+
+      let distance-to-patch distance myself
+
+      ifelse add-areas? [ set total-value a1 * area-value ] [ set total-value 100 ]
+      if distance-to-patch? [ set total-value total-value - a2 * distance-to-patch ]
+      if friends? [ set total-value total-value - a3 * friends-in-new-vision ]
+      if avoid-cops? [ set total-value total-value - a4 * distance-from-nearest-cop ]
+
+    ]
+    let current-distance-from-cop 0
+    if avoid-cops? [ set current-distance-from-cop [ distance-from-nearest-cop ] of patch-here ]
+    set movement-patch max-one-of patches in-radius rebel-vision with [not any? cops-here and not any? rebels-here with [ jailed? = false ] and distance-from-nearest-cop >= current-distance-from-cop ] [ total-value ]
+  ]
 end
 
 to cop-movement-rule
-  ask patches in-radius cop-vision [
-    let cops-in-new-vision count cops-on patches in-radius cop-vision
-    let active-in-new-vision count rebels-on patches in-radius cop-vision
-    let agent-density active-in-new-vision / cops-in-new-vision
-    let distance-to-patch distance myself
-    set total-value c1 * agent-density - c2 * distance-to-patch
+  if cop-movement = "Random" [ set movement-patch one-of patches in-radius rebel-vision with [not any? cops-here and not any? rebels-here with [ jailed? = false ] ] ]
+
+  if cop-movement = "Custom" [
+    ask patches in-radius cop-vision [
+      let cops-in-new-vision count cops-on patches in-radius cop-vision
+      let active-in-new-vision count rebels-on patches in-radius cop-vision
+      let agent-density active-in-new-vision / cops-in-new-vision
+      let distance-to-patch distance myself
+
+      ifelse active-rebel-density? [ set total-value c1 * agent-density ] [ set total-value 100 ]
+      if distance-to-patch-cop? [ set total-value total-value - c2 * distance-to-patch ]
+    ]
+    set movement-patch max-one-of patches in-radius cop-vision with [not any? cops-here and not any? rebels-here with [ jailed? = false ] ] [ total-value ]
   ]
-  set movement-patch max-one-of patches in-radius cop-vision with [not any? cops-here and not any? rebels-here with [ jailed? = false ] ] [ total-value ]
 end
+
+to update-view           ;; Update the view in case of changed parameters
+  update-patches
+  update-rebels
+end
+
 
 to update-patches
   ask patches [
@@ -335,7 +352,7 @@ to update-patches
     ifelse heatmap?
     [ set pcolor scale-color orange distance-from-nearest-cop -10 10 ]
     [ set pcolor 39
-      if movement-agent = "Custom"[
+      if rebel-movement = "Custom" and add-areas? [
         (ifelse
           area-value = 4 [ set pcolor 58 ]
           area-value = 10 [ set pcolor 53 ]
@@ -343,6 +360,53 @@ to update-patches
           area-value = 6 [ set pcolor 55 ]
         )
       ]
+    ]
+  ]
+end
+
+to update-rebels
+  ask rebels with [ active? = false and jailed? = false ] [ ;; Quiet rebels
+    ifelse friends? and rebel-movement = "Custom"
+    [
+      set color blue
+      (ifelse team = 1 [set shape "team-one"]
+        team = 2 [set shape "team-two"]
+        team = 3 [set shape "team-three"]
+        team = 4 [set shape "team-four"]
+        )
+    ]
+    [
+      set color blue
+      set shape "circle"
+    ]
+  ]
+  ask rebels with [ active? = true and jailed? = false ] [  ;; Active rebels
+    ifelse friends? and rebel-movement = "Custom"
+    [
+      set color red
+      (ifelse team = 1 [set shape "team-one"]
+        team = 2 [set shape "team-two"]
+        team = 3 [set shape "team-three"]
+        team = 4 [set shape "team-four"]
+        )
+    ]
+    [
+      set color red
+      set shape "circle"
+    ]
+  ]
+  ask rebels with [ jailed? = true ] [  ;; Jailed rebels
+    set color gray
+    ifelse friends? and rebel-movement = "Custom"
+    [
+      (ifelse team = 1 [set shape "team-one"]
+        team = 2 [set shape "team-two"]
+        team = 3 [set shape "team-three"]
+        team = 4 [set shape "team-four"]
+        )
+    ]
+    [
+      set shape "circle"
     ]
   ]
 end
@@ -396,11 +460,11 @@ SLIDER
 56
 230
 89
-initial-population-density
-initial-population-density
+initial-rebel-density
+initial-rebel-density
 0
 1
-0.6
+0.7
 0.01
 1
 NIL
@@ -415,7 +479,7 @@ initial-cop-density
 initial-cop-density
 0
 1
-0.052
+0.04
 0.001
 1
 NIL
@@ -445,7 +509,7 @@ cop-vision
 cop-vision
 0
 10
-6.0
+7.0
 0.1
 1
 NIL
@@ -456,11 +520,11 @@ SLIDER
 187
 233
 220
-agent-vision
-agent-vision
+rebel-vision
+rebel-vision
 0
 10
-6.0
+7.0
 0.1
 1
 NIL
@@ -547,21 +611,21 @@ PENS
 "default" 1.0 0 -2674135 true "" "plot count rebels with [ active? = true ]"
 
 SWITCH
-256
-169
-493
-202
-perceived-legitimacy?
-perceived-legitimacy?
-0
+12
+527
+232
+560
+rebel-perceived-legitimacy?
+rebel-perceived-legitimacy?
+1
 1
 -1000
 
 MONITOR
-256
-219
-462
-264
+11
+568
+217
+613
 Average rebel perceived legitimacy
 precision mean [ perceived-legitimacy ] of rebels 6
 17
@@ -614,10 +678,10 @@ NIL
 HORIZONTAL
 
 MONITOR
-256
-273
-463
-318
+563
+543
+684
+588
 defect-cop-candidates
 ceiling(initial-cop-density * (defect-cop-candidates-percent / 100) * count patches)
 17
@@ -625,10 +689,10 @@ ceiling(initial-cop-density * (defect-cop-candidates-percent / 100) * count patc
 11
 
 MONITOR
-255
-433
-462
-478
+694
+544
+842
+589
 non-defect-cop-candidates
 floor((initial-cop-density * (100 - defect-cop-candidates-percent) / 100) * count patches)
 17
@@ -636,10 +700,10 @@ floor((initial-cop-density * (100 - defect-cop-candidates-percent) / 100) * coun
 11
 
 MONITOR
-255
-381
-462
-426
+854
+545
+920
+590
 total-cops
 floor(initial-cop-density * count patches)
 1
@@ -647,10 +711,10 @@ floor(initial-cop-density * count patches)
 11
 
 MONITOR
-255
-327
-463
-372
+474
+543
+556
+588
 defected-cops
 count cops with [ not-defected? = false ]
 17
@@ -658,35 +722,131 @@ count cops with [ not-defected? = false ]
 11
 
 CHOOSER
-255
-56
-393
+244
 101
-movement-agent
-movement-agent
-"Off" "Random" "Custom" "Avoidance"
-2
+480
+146
+rebel-movement
+rebel-movement
+"Off" "Random" "Avoidance" "Custom"
+1
 
 CHOOSER
-255
-115
-393
-160
-movement-cop
-movement-cop
+245
+397
+480
+442
+cop-movement
+cop-movement
 "Off" "Random" "Custom"
-0
+1
 
 SWITCH
-397
-68
-492
-101
+246
+55
+480
+88
 heatmap?
 heatmap?
 1
 1
 -1000
+
+SWITCH
+286
+213
+442
+246
+avoid-cops?
+avoid-cops?
+0
+1
+-1000
+
+SWITCH
+286
+260
+443
+293
+add-areas?
+add-areas?
+0
+1
+-1000
+
+SWITCH
+285
+307
+444
+340
+distance-to-patch?
+distance-to-patch?
+0
+1
+-1000
+
+SWITCH
+285
+353
+444
+386
+friends?
+friends?
+0
+1
+-1000
+
+SWITCH
+277
+504
+449
+537
+active-rebel-density?
+active-rebel-density?
+0
+1
+-1000
+
+SWITCH
+276
+550
+450
+583
+distance-to-patch-cop?
+distance-to-patch-cop?
+0
+1
+-1000
+
+TEXTBOX
+267
+18
+471
+60
+Note: updates to the view only happen on setup or while running the model
+11
+0.0
+1
+
+TEXTBOX
+253
+161
+489
+217
+When setting the rebel-movement to Custom, these switches can be used to set the desired movement.
+11
+0.0
+1
+
+TEXTBOX
+253
+449
+477
+505
+When setting the cop-movement to Custom, these switches can be used to set the desired movement.
+11
+0.0
+1
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -954,102 +1114,102 @@ Circle -7500403 true true 120 120 60
 
 team-four
 false
-10
-Circle -13791810 true false 0 0 300
+9
+Circle -13791810 true true 0 0 300
 Circle -16777216 true false 30 30 240
-Polygon -13791810 true false 45 60 285 105 195 285 45 120 60 60
-Polygon -13791810 true false 15 165
-Circle -13791810 true false 30 120 0
-Polygon -13791810 true false 225 30 75 30 15 120 30 210 120 285 240 255 270 195 270 105 210 30 135 15 75 45 45 60 15 165 75 270 180 285
-Circle -13791810 true false 60 195 0
-Polygon -13791810 true false 60 75 30 195 90 285 210 300 210 210 60 75 30 165
-Polygon -13791810 true false 120 15 60 75 210 120 270 105 255 45 120 15
+Polygon -13791810 true true 45 60 285 105 195 285 45 120 60 60
+Polygon -13791810 true true 15 165
+Circle -13791810 true true 30 120 0
+Polygon -13791810 true true 225 30 75 30 15 120 30 210 120 285 240 255 270 195 270 105 210 30 135 15 75 45 45 60 15 165 75 270 180 285
+Circle -13791810 true true 60 195 0
+Polygon -13791810 true true 60 75 30 195 90 285 210 300 210 210 60 75 30 165
+Polygon -13791810 true true 120 15 60 75 210 120 270 105 255 45 120 15
 Polygon -13840069 true false 105 105 165 45 210 45 210 255 165 255 165 90 105 150 105 105
-Circle -13791810 true false 71 86 67
-Circle -13791810 true false 60 15 60
-Circle -13791810 true false 150 165 0
-Circle -13791810 true false 195 120 0
-Circle -13791810 true false 65 20 170
-Circle -13791810 true false 39 99 192
+Circle -13791810 true true 71 86 67
+Circle -13791810 true true 60 15 60
+Circle -13791810 true true 150 165 0
+Circle -13791810 true true 195 120 0
+Circle -13791810 true true 65 20 170
+Circle -13791810 true true 39 99 192
 Polygon -13840069 true false 75 90 120 45 195 45 225 90 135 210 240 210 240 240 105 240 105 180 195 90 180 75 120 75 105 90 75 90
-Circle -13791810 true false 78 33 85
-Circle -13791810 true false 9 69 192
-Circle -13791810 true false 81 6 108
-Circle -13791810 true false 113 8 134
-Circle -13791810 true false 39 69 42
-Circle -13791810 true false 95 125 170
+Circle -13791810 true true 78 33 85
+Circle -13791810 true true 9 69 192
+Circle -13791810 true true 81 6 108
+Circle -13791810 true true 113 8 134
+Circle -13791810 true true 39 69 42
+Circle -13791810 true true 95 125 170
 Polygon -13840069 true false 105 60 210 60 210 105 165 150 210 180 210 240 105 240 105 210 180 210 135 180 135 135 180 90 180 75 120 75 105 60 105 75 150 75
 Polygon -13840069 true false 105 45 210 45 210 75 105 75 105 45
-Circle -13345367 true true 150 120 0
-Circle -13791810 true false 39 24 192
-Circle -13791810 true false 116 26 127
-Circle -13791810 true false 89 134 153
+Circle -13345367 true false 150 120 0
+Circle -13791810 true true 39 24 192
+Circle -13791810 true true 116 26 127
+Circle -13791810 true true 89 134 153
 Polygon -16777216 true false 120 45 75 135 210 135 210 105 135 105 180 15 135 15 120 45
 Polygon -16777216 true false 210 105 255 105 255 135 210 135 210 105
 Polygon -16777216 true false 195 75 195 240 225 240 225 75 195 75
 
 team-one
 false
-10
-Circle -13791810 true false 0 0 300
+9
+Circle -13791810 true true 0 0 300
 Circle -16777216 true false 30 30 240
-Polygon -13791810 true false 45 60 285 105 195 285 45 120 60 60
-Polygon -13791810 true false 15 165
-Circle -13791810 true false 30 120 0
-Polygon -13791810 true false 225 30 75 30 15 120 30 210 120 285 240 255 270 195 270 105 210 30 135 15 75 45 45 60 15 165 75 270 180 285
-Circle -13791810 true false 60 195 0
-Polygon -13791810 true false 45 60 15 180 75 270 195 285 195 195 45 60 15 150
-Polygon -13791810 true false 105 15 45 75 195 120 255 105 240 45 105 15
+Polygon -13791810 true true 45 60 285 105 195 285 45 120 60 60
+Polygon -13791810 true true 15 165
+Circle -13791810 true true 30 120 0
+Polygon -13791810 true true 225 30 75 30 15 120 30 210 120 285 240 255 270 195 270 105 210 30 135 15 75 45 45 60 15 165 75 270 180 285
+Circle -13791810 true true 60 195 0
+Polygon -13791810 true true 45 60 15 180 75 270 195 285 195 195 45 60 15 150
+Polygon -13791810 true true 105 15 45 75 195 120 255 105 240 45 105 15
 Polygon -16777216 true false 105 105 165 45 210 45 210 255 165 255 165 90 105 150 105 105
 
 team-three
 false
-10
-Circle -13791810 true false 0 0 300
+9
+Circle -13791810 true true 0 0 300
 Circle -16777216 true false 30 30 240
-Polygon -13791810 true false 45 60 285 105 195 285 45 120 60 60
-Polygon -13791810 true false 15 165
-Circle -13791810 true false 30 120 0
-Polygon -13791810 true false 225 30 75 30 15 120 30 210 120 285 240 255 270 195 270 105 210 30 135 15 75 45 45 60 15 165 75 270 180 285
-Circle -13791810 true false 60 195 0
-Polygon -13791810 true false 60 75 30 195 90 285 210 300 210 210 60 75 30 165
-Polygon -13791810 true false 120 15 60 75 210 120 270 105 255 45 120 15
+Polygon -13791810 true true 45 60 285 105 195 285 45 120 60 60
+Polygon -13791810 true true 15 165
+Circle -13791810 true true 30 120 0
+Polygon -13791810 true true 225 30 75 30 15 120 30 210 120 285 240 255 270 195 270 105 210 30 135 15 75 45 45 60 15 165 75 270 180 285
+Circle -13791810 true true 60 195 0
+Polygon -13791810 true true 60 75 30 195 90 285 210 300 210 210 60 75 30 165
+Polygon -13791810 true true 120 15 60 75 210 120 270 105 255 45 120 15
 Polygon -13840069 true false 105 105 165 45 210 45 210 255 165 255 165 90 105 150 105 105
-Circle -13791810 true false 71 86 67
-Circle -13791810 true false 60 15 60
-Circle -13791810 true false 150 165 0
-Circle -13791810 true false 195 120 0
-Circle -13791810 true false 65 20 170
-Circle -13791810 true false 39 99 192
+Circle -13791810 true true 71 86 67
+Circle -13791810 true true 60 15 60
+Circle -13791810 true true 150 165 0
+Circle -13791810 true true 195 120 0
+Circle -13791810 true true 65 20 170
+Circle -13791810 true true 39 99 192
 Polygon -13840069 true false 75 90 120 45 195 45 225 90 135 210 240 210 240 240 105 240 105 180 195 90 180 75 120 75 105 90 75 90
-Circle -13791810 true false 78 33 85
-Circle -13791810 true false 9 69 192
-Circle -13791810 true false 81 6 108
-Circle -13791810 true false 113 8 134
-Circle -13791810 true false 39 69 42
-Circle -13791810 true false 95 125 170
+Circle -13791810 true true 78 33 85
+Circle -13791810 true true 9 69 192
+Circle -13791810 true true 81 6 108
+Circle -13791810 true true 113 8 134
+Circle -13791810 true true 39 69 42
+Circle -13791810 true true 95 125 170
 Polygon -16777216 true false 105 60 210 60 210 105 165 150 210 180 210 240 105 240 105 210 180 210 135 180 135 135 180 90 180 75 120 75 105 60 105 75 150 75
 Polygon -16777216 true false 105 45 210 45 210 75 105 75 105 45
 
 team-two
 false
-10
-Circle -13791810 true false 0 0 300
+9
+Circle -13791810 true true 0 0 300
 Circle -16777216 true false 30 30 240
-Polygon -13791810 true false 45 60 285 105 195 285 45 120 60 60
-Polygon -13791810 true false 15 165
-Circle -13791810 true false 30 120 0
-Polygon -13791810 true false 225 30 75 30 15 120 30 210 120 285 240 255 270 195 270 105 210 30 135 15 75 45 45 60 15 165 75 270 180 285
-Circle -13791810 true false 60 195 0
-Polygon -13791810 true false 45 60 15 180 75 270 195 285 195 195 45 60 15 150
-Polygon -13791810 true false 120 15 60 75 210 120 270 105 255 45 120 15
+Polygon -13791810 true true 45 60 285 105 195 285 45 120 60 60
+Polygon -13791810 true true 15 165
+Circle -13791810 true true 30 120 0
+Polygon -13791810 true true 225 30 75 30 15 120 30 210 120 285 240 255 270 195 270 105 210 30 135 15 75 45 45 60 15 165 75 270 180 285
+Circle -13791810 true true 60 195 0
+Polygon -13791810 true true 45 60 15 180 75 270 195 285 195 195 45 60 15 150
+Polygon -13791810 true true 120 15 60 75 210 120 270 105 255 45 120 15
 Polygon -13840069 true false 105 105 165 45 210 45 210 255 165 255 165 90 105 150 105 105
-Circle -13791810 true false 71 86 67
-Circle -13791810 true false 60 15 60
-Circle -13791810 true false 150 165 0
-Circle -13791810 true false 195 120 0
-Circle -13791810 true false 95 35 170
-Circle -13791810 true false 39 99 192
+Circle -13791810 true true 71 86 67
+Circle -13791810 true true 60 15 60
+Circle -13791810 true true 150 165 0
+Circle -13791810 true true 195 120 0
+Circle -13791810 true true 95 35 170
+Circle -13791810 true true 39 99 192
 Polygon -16777216 true false 75 90 120 45 195 45 225 90 135 210 240 210 240 240 105 240 105 180 195 90 180 75 120 75 105 90 75 90
 
 tree
