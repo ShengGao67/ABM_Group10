@@ -225,10 +225,10 @@ to update-patches
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-1069
-51
-1483
-466
+931
+55
+1345
+470
 -1
 -1
 10.15
@@ -271,7 +271,7 @@ NIL
 SLIDER
 9
 56
-212
+230
 89
 initial-population-density
 initial-population-density
@@ -286,7 +286,7 @@ HORIZONTAL
 SLIDER
 10
 97
-210
+231
 130
 initial-cop-density
 initial-cop-density
@@ -301,7 +301,7 @@ HORIZONTAL
 SLIDER
 11
 147
-210
+232
 180
 legitimacy
 legitimacy
@@ -314,10 +314,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-13
-228
-213
-261
+14
+231
+234
+264
 cop-vision
 cop-vision
 0
@@ -331,7 +331,7 @@ HORIZONTAL
 SLIDER
 13
 187
-213
+233
 220
 agent-vision
 agent-vision
@@ -361,7 +361,7 @@ HORIZONTAL
 CHOOSER
 14
 271
-219
+233
 316
 maximum-jail-time
 maximum-jail-time
@@ -386,10 +386,10 @@ NIL
 1
 
 PLOT
-647
-20
-1050
-282
+499
+24
+902
+286
 Active Rebels
 Time
 Amount
@@ -406,10 +406,10 @@ PENS
 "Jailed" 1.0 0 -7500403 true "" "plot count rebels with [ jailed? = true ]"
 
 PLOT
-646
-292
-1054
-526
+498
+296
+906
+530
 Active Rebels 2
 Time
 Amount
@@ -426,29 +426,29 @@ PENS
 SWITCH
 236
 103
-346
+476
 136
 heatmap?
 heatmap?
-1
+0
 1
 -1000
 
 CHOOSER
 234
 50
-372
+478
 95
 movement
 movement
 "Off" "Random" "Avoidance"
-1
+2
 
 SWITCH
-240
-151
-414
-184
+237
+149
+474
+182
 perceived-legitimacy?
 perceived-legitimacy?
 0
@@ -456,21 +456,21 @@ perceived-legitimacy?
 -1000
 
 MONITOR
-242
-204
-448
-249
+256
+219
+462
+264
 Average rebel perceived legitimacy
-mean [ perceived-legitimacy ] of rebels
+precision mean [ perceived-legitimacy ] of rebels 6
 17
 1
 11
 
 SLIDER
-369
-335
-590
-368
+11
+424
+233
+457
 defect-cop-candidates-percent
 defect-cop-candidates-percent
 0
@@ -478,14 +478,14 @@ defect-cop-candidates-percent
 15.0
 1
 1
-NIL
+%
 HORIZONTAL
 
 SLIDER
-32
-410
-204
-443
+15
+373
+233
+406
 cop-benefits
 cop-benefits
 0
@@ -497,10 +497,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-285
-399
-472
-432
+12
+476
+231
+509
 cop-perceived-legitimacy
 cop-perceived-legitimacy
 0
@@ -512,10 +512,10 @@ NIL
 HORIZONTAL
 
 MONITOR
-294
-465
-432
-510
+256
+273
+463
+318
 defect-cop-candidates
 ceiling(initial-cop-density * (defect-cop-candidates-percent / 100) * count patches)
 17
@@ -523,10 +523,10 @@ ceiling(initial-cop-density * (defect-cop-candidates-percent / 100) * count patc
 11
 
 MONITOR
-294
-523
-443
-568
+255
+433
+462
+478
 non-defect-cop-candidates
 floor((initial-cop-density * (100 - defect-cop-candidates-percent) / 100) * count patches)
 17
@@ -534,10 +534,10 @@ floor((initial-cop-density * (100 - defect-cop-candidates-percent) / 100) * coun
 11
 
 MONITOR
-453
-465
-584
-510
+255
+381
+462
+426
 total-cops
 floor(initial-cop-density * count patches)
 1
@@ -545,10 +545,10 @@ floor(initial-cop-density * count patches)
 11
 
 MONITOR
-84
-527
-254
-572
+255
+327
+463
+372
 defected-cops
 count cops with [ not-defected? = false ]
 17
