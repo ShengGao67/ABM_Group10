@@ -179,6 +179,7 @@ end
 to go
   agent-rule
   cop-rule
+  update-patches
   tick
 end
 
@@ -327,6 +328,24 @@ to cop-movement-rule
   ]
   set movement-patch max-one-of patches in-radius cop-vision with [not any? cops-here and not any? rebels-here with [ jailed? = false ] ] [ total-value ]
 end
+
+to update-patches
+  ask patches [
+    set distance-from-nearest-cop distance min-one-of cops [ distance myself ]
+    ifelse heatmap?
+    [ set pcolor scale-color orange distance-from-nearest-cop -10 10 ]
+    [ set pcolor 39
+      if movement-agent = "Custom"[
+        (ifelse
+          area-value = 4 [ set pcolor 58 ]
+          area-value = 10 [ set pcolor 53 ]
+          area-value = -10 [ set pcolor 44 ]
+          area-value = 6 [ set pcolor 55 ]
+        )
+      ]
+    ]
+  ]
+end
 @#$#@#$#@
 GRAPHICS-WINDOW
 931
@@ -396,7 +415,7 @@ initial-cop-density
 initial-cop-density
 0
 1
-0.009
+0.052
 0.001
 1
 NIL
@@ -441,7 +460,7 @@ agent-vision
 agent-vision
 0
 10
-3.0
+6.0
 0.1
 1
 NIL
@@ -639,14 +658,14 @@ count cops with [ not-defected? = false ]
 11
 
 CHOOSER
-258
+255
 56
-396
+393
 101
 movement-agent
 movement-agent
 "Off" "Random" "Custom" "Avoidance"
-2
+1
 
 CHOOSER
 255
@@ -657,6 +676,17 @@ movement-cop
 movement-cop
 "Off" "Random" "Custom"
 2
+
+SWITCH
+397
+68
+492
+101
+heatmap?
+heatmap?
+1
+1
+-1000
 
 @#$#@#$#@
 ## WHAT IS IT?
