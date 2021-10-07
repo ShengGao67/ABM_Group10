@@ -152,25 +152,25 @@ to setup-patches
   ]
   ask n-of 6 patches [  ;; Retail shop
     ask patches in-radius 1.5 [
-      set pcolor 58
+      if movement-agent = "Custom" [ set pcolor 58 ]
       set area-value 4
     ]
   ]
   ask n-of 3 patches with [ area-value = 0 ] [  ;; Government building
     ask patches in-radius 1.5 [
-      set pcolor 53
+      if movement-agent = "Custom" [ set pcolor 53 ]
       set area-value 10
     ]
   ]
   ask n-of 2 patches with [ area-value = 0 ] [  ;; Police station
     ask patches in-radius 1.5 [
-      set pcolor 44
+      if movement-agent = "Custom" [ set pcolor 44 ]
       set area-value -10
     ]
   ]
   ask n-of 2 patches with [ area-value = 0 ] [  ;; Park
     ask patches in-radius 2.9 [
-      set pcolor 55
+      if movement-agent = "Custom" [ set pcolor 55 ]
       set area-value 6
     ]
   ]
@@ -665,7 +665,7 @@ CHOOSER
 movement-agent
 movement-agent
 "Off" "Random" "Custom" "Avoidance"
-1
+2
 
 CHOOSER
 255
@@ -675,7 +675,7 @@ CHOOSER
 movement-cop
 movement-cop
 "Off" "Random" "Custom"
-2
+0
 
 SWITCH
 397
