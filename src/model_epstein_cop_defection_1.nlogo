@@ -50,6 +50,7 @@ patches-own
 
 to setup
   clear-all
+  if initial-population-density + initial-cop-density >= 1.0 [ error "Population density + Cop density should not be equal to or larger than 1.0" stop ]
   set k 2.3
   set t 0.1
   set z 1.8
@@ -277,7 +278,7 @@ initial-population-density
 initial-population-density
 0
 1
-0.7
+0.99
 0.01
 1
 NIL
@@ -292,7 +293,7 @@ initial-cop-density
 initial-cop-density
 0
 1
-0.049
+0.009
 0.001
 1
 NIL
