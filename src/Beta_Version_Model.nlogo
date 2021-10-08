@@ -328,7 +328,7 @@ to rebel-movement-rule ;; There are several options for rebel movement
       if friends? [ set total-value total-value + a3 * friends-in-new-vision ]
       if avoid-cops? [ set total-value total-value + a4 * distance-from-nearest-cop ]
 
-      ;; if all settings are enabled, the formula looks like this: a1 * area-value - a2 * distance-to-patch - a3 * friends-in-new-vision - a4 * distance-from-nearest-cop
+      ;; if all settings are enabled, the formula looks like this: a1 * area-value - a2 * distance-to-patch + a3 * friends-in-new-vision + a4 * distance-from-nearest-cop
     ]
     let current-distance-from-cop 0
     if avoid-cops? [ set current-distance-from-cop [ distance-from-nearest-cop ] of patch-here ]
