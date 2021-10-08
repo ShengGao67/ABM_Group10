@@ -70,10 +70,11 @@ to setup
   set a4 0.3
   set c1 0.6
   set c2 0.4
-  random-seed 585
+  ifelse area-seed = 0 [random-seed new-seed] [random-seed area-seed]
   set cop-defect-threshold 0.7
-  setup-turtles
   setup-patches
+  setup-turtles
+  random-seed new-seed
   reset-ticks
 end
 
@@ -97,7 +98,36 @@ to setup-turtles
 
   ]
 
-  ; non-defection cop candidates
+  ;; Initialize friend groups
+  ask n-of (count rebels / 4) rebels with [ team = 0 ] [
+    set team 1
+    if rebel-movement = "Custom" and friends? [
+      set color blue
+      set shape "team-one"
+    ]
+  ]
+  ask n-of (count rebels / 4) rebels with [ team = 0 ] [
+    set team 2
+    if rebel-movement = "Custom" and friends? [
+      set color blue
+      set shape "team-two"
+    ]
+  ]
+  ask n-of (count rebels / 4) rebels with [ team = 0 ] [
+    set team 3
+    if rebel-movement = "Custom" and friends? [
+      set color blue
+      set shape "team-three"
+    ]
+  ]
+  ask n-of (count rebels / 4) rebels with [ team = 0 ] [
+    if rebel-movement = "Custom" and friends? [
+      set color blue
+      set shape "team-four"
+    ]
+  ]
+
+  ;; non-defection cop candidates
   create-cops floor((initial-cop-density * (100 - defect-cop-candidates-percent) / 100) * count patches)
   [
     move-to one-of patches with [not any? turtles-here]
@@ -120,33 +150,6 @@ to setup-turtles
     set c-greed 0.5 + random-float 0.5
     set not-defected? true
   ]
-  ask n-of 200 rebels [
-    set team 1
-    if rebel-movement = "Custom" and friends? [
-      set color blue
-      set shape "team-one"
-    ]
-  ]
-  ask n-of 200 rebels [
-    set team 2
-    if rebel-movement = "Custom" and friends? [
-      set color blue
-      set shape "team-two"
-    ]
-  ]
-  ask n-of 200 rebels [
-    set team 3
-    if rebel-movement = "Custom" and friends? [
-      set color blue
-      set shape "team-three"
-    ]
-  ]
-  ask n-of 200 rebels [
-    if rebel-movement = "Custom" and friends? [
-      set color blue
-      set shape "team-four"
-    ]
-  ]
 end
 
 to setup-patches
@@ -155,6 +158,8 @@ to setup-patches
     set movement-value 0
     set area-value 0
   ]
+
+  ;; area-values are always set in case the areas are switched on later
   ask n-of 6 patches [  ;; Retail shop
     ask patches in-radius 1.5 [
       if rebel-movement = "Custom" and add-areas? [ set pcolor 58 ]
@@ -182,24 +187,27 @@ to setup-patches
 end
 
 to go
-  agent-rule
+  rebel-rule
   cop-rule
   update-view
   tick
 end
 
-to agent-rule  ;; The agent rule and everything necesarry to use it
+to rebel-rule  ;; The rebel rule: first rebels move, then they turn active or quiet
   ask rebels
   [
-    ifelse jail-time = 0
-    [ ;; Movement Part
+    ifelse jail-time = 0    ;; Only if the rebel is not jailed will the rebel do things
+    [
       set jailed? false
+
+      ;; Move
       if rebel-movement != "Off"
       [
         rebel-movement-rule
         if movement-patch != nobody
         [move-to movement-patch]
       ]
+
       ;; Ask nearby rebels about their perceived legitimacy
       if rebel-perceived-legitimacy? [
         set perceived-legitimacy (perceived-legitimacy + [ perceived-legitimacy ] of one-of rebels in-radius rebel-vision) / 2
@@ -208,16 +216,16 @@ to agent-rule  ;; The agent rule and everything necesarry to use it
       ;; Become active/quiet
 
       ifelse rebel-perceived-legitimacy?
-      [ set grievance r-hardship * (1 - perceived-legitimacy) ]                ;; G = H(1-L)
+      [ set grievance r-hardship * (1 - perceived-legitimacy) ]                                         ;; G = H(1-L)
       [ set grievance r-hardship * (1 - legitimacy) ]
-      set cops-in-vision count (cops-on patches in-radius rebel-vision) with [not-defected? = true]                                 ;; C
+      set cops-in-vision count (cops-on patches in-radius rebel-vision) with [not-defected? = true]                            ;; C
       set active-in-vision 1 + count (rebels-on patches in-radius rebel-vision) with [ active? = true and jailed? = false]     ;; A
-      set arrest-probability 1 - exp ( - k * floor (cops-in-vision / active-in-vision))                       ;; P = 1 - exp[-k(C/A)]
+      set arrest-probability 1 - exp ( - k * floor (cops-in-vision / active-in-vision))                 ;; P = 1 - exp[-k(C/A)]
       set net-risk risk-aversion * arrest-probability                                                   ;; N = RP
-      ifelse grievance - net-risk > t [ become-active ] [ become-quiet ]                                ;; If G - N > T
+      ifelse grievance - net-risk > t [ become-active ] [ become-quiet ]                                ;; If G - N > T, become active
     ]
     [
-      set jail-time jail-time - 1
+      set jail-time jail-time - 1  ;; decrease the jail time each tick if the rebel is jailed
     ]
    ]
 end
@@ -242,8 +250,10 @@ to become-quiet ;; Change a rebel to quiet
   set active? false
 end
 
-to cop-rule ;; The cop rule
+to cop-rule ;; The cop rule: first, a cop moves, then they possibly defect, then, if they have not defected, they arrest a nearby active rebel
   ask cops [
+
+    ;; Move
     if cop-movement != "Off"
       [
         cop-movement-rule
@@ -251,6 +261,7 @@ to cop-rule ;; The cop rule
         [move-to movement-patch]
       ]
 
+    ;; Defect (or not)
     set c-tendency-greed (1 - cop-benefits) * c-greed
     set c-tendency-grievance c-hardship * (1 - cop-perceived-legitimacy)
     set c-tendency-avg (c-tendency-greed + c-tendency-grievance) / 2
@@ -260,6 +271,7 @@ to cop-rule ;; The cop rule
     [cop-become-defect]
     [cop-become-non-defect]
 
+    ;; Arrest active rebel (if there is one in vision)
     if not-defected?
     [
       set target one-of (rebels-on patches in-radius cop-vision) with [ active? = true and jailed? = false ]
@@ -274,7 +286,7 @@ to cop-rule ;; The cop rule
   ]
 end
 
-to arrest-target
+to arrest-target  ;; A cop arrests an active rebel
   ask target [
     set jailed? true
     set active? false
@@ -286,18 +298,18 @@ to arrest-target
 end
 
 
-to rebel-movement-rule
-  ;; a1 * area-value - a2(distance-2*friend) - a3(e^(arrest_probability)  + jail term)
-  if rebel-movement = "Random" [
+to rebel-movement-rule ;; There are several options for rebel movement
+
+  if rebel-movement = "Random" [ ;; The rebel moves to a random patch in vision
     set movement-patch one-of patches in-radius rebel-vision with [not any? cops-here and not any? rebels-here with [ jailed? = false ] ]
   ]
 
-  if rebel-movement = "Avoidance" [
+  if rebel-movement = "Avoidance" [ ;; The rebel stays as far away from cops as possible
     let current-distance-from-cop [ distance-from-nearest-cop ] of patch-here
     set movement-patch one-of patches in-radius rebel-vision with [not any? cops-here and not any? rebels-here with [ jailed? = false ] and distance-from-nearest-cop >= current-distance-from-cop]
   ]
 
-  if rebel-movement = "Custom" [
+  if rebel-movement = "Custom" [ ;; The user of the model can choose what things to take into account for the rebel movement
     ask patches in-radius rebel-vision [
       let current-team [ team ] of myself
 
@@ -316,6 +328,7 @@ to rebel-movement-rule
       if friends? [ set total-value total-value - a3 * friends-in-new-vision ]
       if avoid-cops? [ set total-value total-value - a4 * distance-from-nearest-cop ]
 
+      ;; if all settings are enabled, the formula looks like this: a1 * area-value - a2 * distance-to-patch - a3 * friends-in-new-vision - a4 * distance-from-nearest-cop
     ]
     let current-distance-from-cop 0
     if avoid-cops? [ set current-distance-from-cop [ distance-from-nearest-cop ] of patch-here ]
@@ -323,18 +336,22 @@ to rebel-movement-rule
   ]
 end
 
-to cop-movement-rule
-  if cop-movement = "Random" [ set movement-patch one-of patches in-radius rebel-vision with [not any? cops-here and not any? rebels-here with [ jailed? = false ] ] ]
+to cop-movement-rule ;; There are several options for cop movement
 
-  if cop-movement = "Custom" [
+  if cop-movement = "Random" [ ;; The cop moves to a random patch in vision
+    set movement-patch one-of patches in-radius rebel-vision with [not any? cops-here and not any? rebels-here with [ jailed? = false ] ] ]
+
+  if cop-movement = "Custom" [ ;; The user of the model can choose what things to take into account for the cop movement
     ask patches in-radius cop-vision [
       let cops-in-new-vision count cops-on patches in-radius cop-vision
       let active-in-new-vision count rebels-on patches in-radius cop-vision
-      let agent-density active-in-new-vision / cops-in-new-vision
+      let active-rebel-density active-in-new-vision / cops-in-new-vision
       let distance-to-patch distance myself
 
-      ifelse active-rebel-density? [ set total-value c1 * agent-density ] [ set total-value 100 ]
+      ifelse active-rebel-density? [ set total-value c1 * active-rebel-density ] [ set total-value 100 ]
       if distance-to-patch-cop? [ set total-value total-value - c2 * distance-to-patch ]
+
+      ;; if all settings are enabled, the formula looks like this: c1 * active-rebel-density - c2 * distance-to-patch
     ]
     set movement-patch max-one-of patches in-radius cop-vision with [not any? cops-here and not any? rebels-here with [ jailed? = false ] ] [ total-value ]
   ]
@@ -753,9 +770,9 @@ heatmap?
 -1000
 
 SWITCH
-286
+256
 213
-442
+412
 246
 avoid-cops?
 avoid-cops?
@@ -764,9 +781,9 @@ avoid-cops?
 -1000
 
 SWITCH
-286
+256
 260
-443
+413
 293
 add-areas?
 add-areas?
@@ -775,9 +792,9 @@ add-areas?
 -1000
 
 SWITCH
-285
+255
 307
-444
+414
 340
 distance-to-patch?
 distance-to-patch?
@@ -786,9 +803,9 @@ distance-to-patch?
 -1000
 
 SWITCH
-285
+255
 353
-444
+414
 386
 friends?
 friends?
@@ -823,7 +840,7 @@ TEXTBOX
 18
 471
 60
-Note: updates to the view only happen on setup or while running the model
+Note: updates to the view only happen on setup or on the next tick
 11
 0.0
 1
@@ -844,6 +861,27 @@ TEXTBOX
 477
 505
 When setting the cop-movement to Custom, these switches can be used to set the desired movement.
+11
+0.0
+1
+
+INPUTBOX
+423
+288
+488
+348
+area-seed
+0.0
+1
+0
+Number
+
+TEXTBOX
+424
+237
+491
+300
+Fill in 0 for random seed
 11
 0.0
 1
