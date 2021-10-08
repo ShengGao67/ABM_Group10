@@ -511,7 +511,7 @@ legitimacy
 legitimacy
 0
 1
-0.8
+0.82
 0.01
 1
 NIL
@@ -556,7 +556,7 @@ maximum-jail-time-years
 maximum-jail-time-years
 0
 100
-10.0
+30.0
 1
 1
 years
@@ -594,7 +594,7 @@ PLOT
 24
 902
 286
-Active Rebels
+Rebels
 Time
 Amount
 0.0
@@ -614,7 +614,7 @@ PLOT
 296
 906
 530
-Active Rebels 2
+Active Rebels
 Time
 Amount
 0.0
@@ -625,7 +625,7 @@ true
 true
 "" ""
 PENS
-"default" 1.0 0 -2674135 true "" "plot count rebels with [ active? = true ]"
+"Active Rebels" 1.0 0 -2674135 true "" "plot count rebels with [ active? = true ]"
 
 SWITCH
 12
@@ -658,7 +658,7 @@ defect-cop-candidates-percent
 defect-cop-candidates-percent
 0
 100
-15.0
+0.0
 1
 1
 %
