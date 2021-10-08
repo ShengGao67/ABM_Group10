@@ -310,7 +310,7 @@ to rebel-movement-rule ;; There are several options for rebel movement
   ]
 
   if rebel-movement = "Custom" [ ;; The user of the model can choose what things to take into account for the rebel movement
-    ask patches in-radius rebel-vision [
+    ask patches in-radius rebel-vision with [ not any? cops-here and not any? rebels-here with [ jailed? = false ] ][
       let current-team [ team ] of myself
 
       let friends-in-new-vision 0
