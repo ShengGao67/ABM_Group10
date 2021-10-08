@@ -65,9 +65,9 @@ to setup
   set t 0.1
   set z 1.8
   set a1 0.2
-  set a2 0.25
+  set a2 0.2
   set a3 0.25
-  set a4 0.3
+  set a4 0.35
   set c1 0.6
   set c2 0.4
   ifelse area-seed = 0 [random-seed new-seed] [random-seed area-seed]
