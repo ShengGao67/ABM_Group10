@@ -325,8 +325,8 @@ to rebel-movement-rule ;; There are several options for rebel movement
 
       ifelse add-areas? [ set total-value a1 * area-value ] [ set total-value 100 ]
       if distance-to-patch? [ set total-value total-value - a2 * distance-to-patch ]
-      if friends? [ set total-value total-value - a3 * friends-in-new-vision ]
-      if avoid-cops? [ set total-value total-value - a4 * distance-from-nearest-cop ]
+      if friends? [ set total-value total-value + a3 * friends-in-new-vision ]
+      if avoid-cops? [ set total-value total-value + a4 * distance-from-nearest-cop ]
 
       ;; if all settings are enabled, the formula looks like this: a1 * area-value - a2 * distance-to-patch - a3 * friends-in-new-vision - a4 * distance-from-nearest-cop
     ]
