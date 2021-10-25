@@ -13,6 +13,10 @@
 - [x] 2021-09-17: State of the art
 - [x] 2021-09-24: Alpha version
 - [x] 2021-10-08: Beta version
-- [ ] 2021-10-15: Peer review
+- [x] 2021-10-15: Peer review
 - [ ] 2021-10-29: Presentation slides draft
 - [ ] 2021-11-05: Final review
+
+## TO DO
+- [ ] Equation numbers in the report
+- [ ] Use uniform figures and tables
