@@ -19,4 +19,5 @@
 
 ## TO DO
 - [ ] Equation numbers in the report
+- [ ] Explain parameters used
 - [ ] Use uniform figures and tables
