@@ -21,3 +21,11 @@
 - [ ] Equation numbers in the report
 - [ ] Explain parameters used
 - [ ] Use uniform figures and tables
+- [ ] Add source to 60% in introduction
+- [ ] "a" and "the" missing so check in Grammerly before submitting and for figure start with F
+- [ ] Highlight factors considered in movement
+- [ ] Rebel movement change sign 
+- [ ] Add hot spot and grouping of people are done by system(not hard-coded)
+- [ ] Explain parameters value are were selected based on various scenario study locally and those effects are studied globally through dynamic simulation system
+- [ ] Future mathematics work need more explaination and text formatting
+- [ ] In summary and discussion state that epstein model findings were also present in our model
