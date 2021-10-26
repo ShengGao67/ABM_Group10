@@ -74,6 +74,7 @@ to setup
   set cop-defect-threshold 0.7
   setup-patches
   setup-turtles
+  if heatmap? [ update-patches ]
   random-seed new-seed
   reset-ticks
 end
@@ -184,6 +185,8 @@ to setup-patches
       set area-value 6
     ]
   ]
+
+  if heatmap? [ ask patches [ set pcolor scale-color orange distance-from-nearest-cop -10 10 ] ]
 end
 
 to go
@@ -746,7 +749,7 @@ CHOOSER
 rebel-movement
 rebel-movement
 "Off" "Random" "Avoidance" "Custom"
-1
+0
 
 CHOOSER
 245
@@ -765,7 +768,7 @@ SWITCH
 88
 heatmap?
 heatmap?
-1
+0
 1
 -1000
 
@@ -878,9 +881,9 @@ Number
 
 TEXTBOX
 424
-237
+254
 491
-300
+317
 Fill in 0 for random seed
 11
 0.0
