@@ -4,6 +4,7 @@ globals
   t
   z
   cop-defect-threshold
+  active-rebels-contact-threshold
   a1
   a2
   a3
@@ -47,6 +48,9 @@ cops-own
   c-tendency-grievance
   c-tendency-avg
   c-prob-defect
+  c-count-rebels
+  c-count-rebels-active
+  c-ratio-active-rebels
   not-defected?
 ]
 
@@ -70,8 +74,9 @@ to setup
   set a4 0.35
   set c1 0.6
   set c2 0.4
+  set cop-defect-threshold 0.5
+  set active-rebels-contact-threshold 0.5
   ifelse area-seed = 0 [random-seed new-seed] [random-seed area-seed]
-  set cop-defect-threshold 0.7
   setup-patches
   setup-turtles
   update-view
@@ -270,9 +275,25 @@ to cop-rule ;; The cop rule: first, a cop moves, then they possibly defect, then
     set c-tendency-avg (c-tendency-greed + c-tendency-grievance) / 2
     set c-prob-defect 1 - exp(- z * floor(c-bias / (1 - c-tendency-avg)))
 
-    ifelse c-prob-defect > cop-defect-threshold
-    [cop-become-defect]
-    [cop-become-non-defect]
+    if c-prob-defect > cop-defect-threshold
+    [
+      set c-count-rebels-active 1 + count(rebels-on patches in-radius cop-vision) with [ active? = true and jailed? = false]
+      set c-count-rebels 1 + count(rebels-on patches in-radius cop-vision) with [jailed? = false]
+      set c-ratio-active-rebels c-count-rebels-active / c-count-rebels
+      ifelse c-ratio-active-rebels > active-rebels-contact-threshold
+      [
+        if not-defected? = true
+        [
+          cop-become-defect
+        ]
+      ]
+      [
+        if not-defected? = false
+        [
+          cop-become-non-defect
+        ]
+      ]
+    ]
 
     ;; Arrest active rebel (if there is one in vision)
     if not-defected?
@@ -522,7 +543,7 @@ initial-rebel-density
 initial-rebel-density
 0
 1
-0.7
+0.84
 0.01
 1
 NIL
@@ -552,7 +573,7 @@ legitimacy
 legitimacy
 0
 1
-0.8
+0.7
 0.01
 1
 NIL
@@ -567,7 +588,7 @@ cop-vision
 cop-vision
 0
 10
-1.5
+3.0
 0.1
 1
 NIL
@@ -597,7 +618,7 @@ maximum-jail-time-years
 maximum-jail-time-years
 0
 100
-30.0
+10.0
 1
 1
 years
@@ -699,7 +720,7 @@ defect-cop-candidates-percent
 defect-cop-candidates-percent
 0
 100
-0.0
+14.0
 1
 1
 %
@@ -714,7 +735,7 @@ cop-benefits
 cop-benefits
 0
 1
-0.8
+0.15
 0.01
 1
 NIL
@@ -729,7 +750,7 @@ cop-perceived-legitimacy
 cop-perceived-legitimacy
 0
 1
-0.74
+0.6
 0.01
 1
 NIL
@@ -817,7 +838,7 @@ SWITCH
 175
 avoid-cops?
 avoid-cops?
-0
+1
 1
 -1000
 
@@ -974,39 +995,60 @@ perceived-legitimacy-social-media?
 @#$#@#$#@
 ## WHAT IS IT?
 
-(a general understanding of what the model is trying to show or explain)
+A model to understand the dynamics of civil violence based on cops' behaviour. This model is an extension of Epstein's model - Modeling civil violence: An agent-based computational approach.
 
 ## HOW IT WORKS
 
-(what rules the agents use to create the overall behavior of the model)
+### Rebel rules
+The rebel rules remain almost the same as described in Epstien's paper.
+
+### Cop rules for cop defection
+The cops have defect and non-defect states. The defected cops do not arrest active rebels in their vision.
+
+In our model, following parameters are used to describe the behaviour of the cops
+1. Benefits provided by authority - homogeneous
+2. Perceived legitimacy - homogeneous
+   different from that of the rebels since the cops and rebels represent different sets of population in the society
+3. Personal bias (agenda) against the authority - heterogeneous
+   a higher value indicates higher bias against the authority
+4. Hardship - heterogeneous
+5. Greed - heterogeneous
+
+The tendency to defect due to greed and hardship are used to compute average tendency to defect. This along with bias parameter are used to further compute the probability of defection. The cop transitions from non-defect to defect state if the probability of defection is greater than a certain threshold and the cop comes into contact with a certain number of active rebels [set as a threshold]. The cop transitions from defect to non-defect state if the cop does not come into contact with a certain number of active rebels.
+
 
 ## HOW TO USE IT
-
-(how to use the model, including a description of each of the items in the Interface tab)
+1. cop-benefits is used for describing the benefits received by cops from the authority for their job
+2. defect-cop-candidates-percent is the percentage of defect cop candidates
+3. cop-perceived-legitimacy is the perceived legitimacy of the authority for cops
 
 ## THINGS TO NOTICE
 
-(suggested things for the user to notice while running the model)
+Set the following parameter values to observe the effects of cop defection on the overall rebellion dynamics
+1. cop-benefits = 0.15
+2. defect-cop-candidates-percent = 15%
+3. cop-perceived-legitimacy = 0.65
+4. movement = random
 
 ## THINGS TO TRY
 
-(suggested things for the user to try to do (move sliders, switches, etc.) with the model)
+Sliders for cop-benefits, defect-cop-candidates-percent, cop-perceived-legitimacy
+Switch for movement
 
 ## EXTENDING THE MODEL
 
-(suggested things to add or change in the Code tab to make the model more complicated, detailed, accurate, etc.)
+To make the model more complicated, a few more parameters can be added for modelling the cops' behaviour.
 
 ## NETLOGO FEATURES
-
-(interesting or unusual features of NetLogo that the model uses, particularly in the Code tab; or where workarounds were needed for missing features)
+TBD
 
 ## RELATED MODELS
 
-(models in the NetLogo Models Library and elsewhere which are of related interest)
+Model in the NetLogo Models Library which is of interest - Social Science > Rebellion
 
 ## CREDITS AND REFERENCES
 
-(a reference to the model's URL on the web if it has one, as well as any other necessary credits, citations, and links)
+This model is an adaptation of Epstein's model Modeling civil violence: An agent-based computational approach - https://doi.org/10.1073/pnas.092080199
 @#$#@#$#@
 default
 true
