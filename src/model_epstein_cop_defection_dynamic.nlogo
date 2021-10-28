@@ -197,7 +197,7 @@ to cop-rule ;; The cop rule
     if c-prob-defect > cop-defect-threshold
     [
       set c-count-rebels-active count(rebels-on patches in-radius cop-vision) with [ active? = true and jailed? = false]
-      set c-count-rebels count(rebels-on patches in-radius cop-vision) with [jailed? = false]
+      set c-count-rebels 1 + count(rebels-on patches in-radius cop-vision) with [jailed? = false]
       set c-ratio-active-rebels c-count-rebels-active / c-count-rebels
       ifelse c-ratio-active-rebels > active-rebels-contact-threshold
       [
