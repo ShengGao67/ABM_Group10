@@ -277,7 +277,7 @@ to cop-rule ;; The cop rule: first, a cop moves, then they possibly defect, then
 
     if c-prob-defect > cop-defect-threshold
     [
-      set c-count-rebels-active 1 + count(rebels-on patches in-radius cop-vision) with [ active? = true and jailed? = false]
+      set c-count-rebels-active count(rebels-on patches in-radius cop-vision) with [ active? = true and jailed? = false]
       set c-count-rebels 1 + count(rebels-on patches in-radius cop-vision) with [jailed? = false]
       set c-ratio-active-rebels c-count-rebels-active / c-count-rebels
       ifelse c-ratio-active-rebels > active-rebels-contact-threshold
@@ -573,7 +573,7 @@ legitimacy
 legitimacy
 0
 1
-0.7
+0.6
 0.01
 1
 NIL
@@ -750,7 +750,7 @@ cop-perceived-legitimacy
 cop-perceived-legitimacy
 0
 1
-0.6
+0.65
 0.01
 1
 NIL
@@ -808,7 +808,7 @@ CHOOSER
 rebel-movement
 rebel-movement
 "Off" "Random" "Avoidance" "Custom"
-1
+2
 
 CHOOSER
 245
@@ -827,7 +827,7 @@ SWITCH
 588
 cop-heatmap?
 cop-heatmap?
-1
+0
 1
 -1000
 
