@@ -705,7 +705,7 @@ defect-cop-candidates-percent
 defect-cop-candidates-percent
 0
 100
-14.0
+0.0
 1
 1
 %
@@ -757,7 +757,7 @@ MONITOR
 544
 842
 589
-non-defect-cop-candidates
+loyal-cop-candidates
 floor((initial-cop-density * (100 - defect-cop-candidates-percent) / 100) * count patches)
 17
 1
