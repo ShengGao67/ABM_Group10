@@ -35,6 +35,7 @@ rebels-own
   jail-time
   perceived-legitimacy
   team
+  talked?
 ]
 
 cops-own
@@ -93,6 +94,7 @@ to setup-turtles
     set size 0.9
     set jailed? false
     set active? false
+    set talked? false
     set r-hardship random-float 1
     set risk-aversion random-float 1
     if rebel-perceived-legitimacy?
@@ -218,7 +220,7 @@ to rebel-rule  ;; The rebel rule: first rebels move, then they turn active or qu
 
       ;; Ask nearby rebels about their perceived legitimacy
       if rebel-perceived-legitimacy? [
-        perceived-legitimacy-rule
+        ifelse talked? [ set talked? false ] [ perceived-legitimacy-rule ] ;; Rebel only talks once a turn
       ]
 
       ;; Become active/quiet
@@ -299,9 +301,8 @@ to cop-rule ;; The cop rule: first, a cop moves, then they possibly defect, then
     if not-defected?
     [
       set target one-of (rebels-on patches in-radius cop-vision) with [ active? = true and jailed? = false ]
-      ifelse target != nobody
+      if target != nobody
       [ set movement-patch target arrest-target ]
-      [ set movement-patch one-of patches in-radius cop-vision with [not any? cops-here and not any? rebels-here with [ jailed? = false ]]]
       if cop-movement != "Off"
       [
         if movement-patch != nobody [ move-to movement-patch ]
@@ -365,26 +366,28 @@ to perceived-legitimacy-rule
   ifelse perceived-legitimacy-social-media? [set partner one-of rebels with [ jailed? = false ]] [set partner one-of rebels in-radius rebel-vision with [ jailed? = false ]]
 
   let partner-perceived-legitimacy [ perceived-legitimacy ] of partner
-  let random-number random-normal 0.5 0.1
+  ;;let random-number random-normal 0.5 0.1
   (ifelse
     perceived-legitimacy > partner-perceived-legitimacy [
-      set perceived-legitimacy (perceived-legitimacy + (perceived-legitimacy - random-number * partner-perceived-legitimacy)) / 2
-      set partner-perceived-legitimacy (partner-perceived-legitimacy + (partner-perceived-legitimacy + random-number * perceived-legitimacy)) / 2
+      let difference perceived-legitimacy - partner-perceived-legitimacy
+      set perceived-legitimacy perceived-legitimacy - 0.1 * difference
+      set partner-perceived-legitimacy partner-perceived-legitimacy + 0.1 * difference
     ]
     perceived-legitimacy < partner-perceived-legitimacy [
-      set perceived-legitimacy (perceived-legitimacy + (perceived-legitimacy + random-number * partner-perceived-legitimacy)) / 2
-      set partner-perceived-legitimacy (partner-perceived-legitimacy + (partner-perceived-legitimacy - random-number * perceived-legitimacy)) / 2
-    ]
-    perceived-legitimacy = partner-perceived-legitimacy [
-      set perceived-legitimacy (perceived-legitimacy + (perceived-legitimacy + random-number * partner-perceived-legitimacy)) / 2
-      set partner-perceived-legitimacy (partner-perceived-legitimacy + (partner-perceived-legitimacy + random-number * perceived-legitimacy)) / 2
+      let difference partner-perceived-legitimacy - perceived-legitimacy
+      set perceived-legitimacy perceived-legitimacy + 0.1 * difference
+      set partner-perceived-legitimacy partner-perceived-legitimacy - 0.1 * difference
     ])
+  set perceived-legitimacy perceived-legitimacy + random-float -0.1 + random-float 0.1
   if perceived-legitimacy > 1 [ set perceived-legitimacy 1 ]
   if perceived-legitimacy < 0 [ set perceived-legitimacy 0 ]
+  set talked? true
   ask partner [
     set perceived-legitimacy partner-perceived-legitimacy
+    set perceived-legitimacy perceived-legitimacy + random-float -0.1 + random-float 0.1
     if perceived-legitimacy > 1 [ set perceived-legitimacy 1 ]
     if perceived-legitimacy < 0 [ set perceived-legitimacy 0 ]
+    set talked? true
   ]
 end
 
@@ -420,14 +423,14 @@ end
 to update-patches
   ask patches [
     set distance-from-nearest-cop distance min-one-of cops [ distance myself ]
-    if any? rebels-here
-    [ let patch-perceived-legitimacy [ perceived-legitimacy ] of rebels-here ]
+
     (ifelse
       cop-heatmap? [ set pcolor scale-color orange distance-from-nearest-cop -10 10 ]
       perceived-legitimacy-heatmap? [
-        ask rebels [
+        ask rebels with [ jailed? = false ] [
           set pcolor scale-color green perceived-legitimacy 0 1
         ]
+        if not any? rebels-here with [ jailed? = false ] [ set pcolor scale-color green 1 0 1]
       ]
       ;; Else
       [ set pcolor 39
@@ -543,7 +546,7 @@ initial-rebel-density
 initial-rebel-density
 0
 1
-0.84
+0.7
 0.01
 1
 NIL
@@ -573,7 +576,7 @@ legitimacy
 legitimacy
 0
 1
-0.6
+1.0
 0.01
 1
 NIL
@@ -588,7 +591,7 @@ cop-vision
 cop-vision
 0
 10
-3.0
+1.5
 0.1
 1
 NIL
@@ -603,7 +606,7 @@ rebel-vision
 rebel-vision
 0
 10
-1.5
+1.0
 0.1
 1
 NIL
@@ -808,7 +811,7 @@ CHOOSER
 rebel-movement
 rebel-movement
 "Off" "Random" "Avoidance" "Custom"
-2
+1
 
 CHOOSER
 245
@@ -827,7 +830,7 @@ SWITCH
 588
 cop-heatmap?
 cop-heatmap?
-0
+1
 1
 -1000
 
@@ -838,7 +841,7 @@ SWITCH
 175
 avoid-cops?
 avoid-cops?
-1
+0
 1
 -1000
 
