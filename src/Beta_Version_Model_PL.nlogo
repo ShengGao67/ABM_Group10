@@ -366,7 +366,7 @@ to perceived-legitimacy-rule
   ifelse perceived-legitimacy-social-media? [set partner one-of rebels with [ jailed? = false ]] [set partner one-of rebels in-radius rebel-vision with [ jailed? = false ]]
 
   let partner-perceived-legitimacy [ perceived-legitimacy ] of partner
-  ;;let random-number random-normal 0.5 0.1
+
   (ifelse
     perceived-legitimacy > partner-perceived-legitimacy [
       let difference perceived-legitimacy - partner-perceived-legitimacy
