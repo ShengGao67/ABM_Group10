@@ -289,7 +289,7 @@ to cop-rule ;; The cop rule: first, a cop moves, then they possibly defect, then
         [move-to movement-patch]
       ]
 
-    ifelse Cop-Model = "Advanced"
+    ifelse Cop-Model = "HMM"
     [
       if m_notdefected? [ m_determine-enforce ]
 
@@ -617,7 +617,7 @@ initial-rebel-density
 initial-rebel-density
 0
 1
-0.61
+0.7
 0.01
 1
 NIL
@@ -632,7 +632,7 @@ initial-cop-density
 initial-cop-density
 0
 1
-0.223
+0.04
 0.001
 1
 NIL
@@ -647,7 +647,7 @@ legitimacy
 legitimacy
 0
 1
-0.2
+0.7
 0.01
 1
 NIL
@@ -662,7 +662,7 @@ cop-vision
 cop-vision
 0
 10
-2.0
+1.5
 0.1
 1
 NIL
@@ -677,7 +677,7 @@ rebel-vision
 rebel-vision
 0
 10
-1.0
+1.5
 0.1
 1
 NIL
@@ -776,7 +776,7 @@ defect-cop-candidates-percent
 defect-cop-candidates-percent
 0
 100
-14.0
+0.0
 1
 1
 %
@@ -864,7 +864,7 @@ CHOOSER
 rebel-movement
 rebel-movement
 "Off" "Random" "Avoidance" "Custom"
-0
+1
 
 CHOOSER
 245
@@ -874,7 +874,7 @@ CHOOSER
 cop-movement
 cop-movement
 "Off" "Random" "Custom"
-0
+1
 
 SWITCH
 247
@@ -1011,7 +1011,7 @@ SWITCH
 625
 perceived-legitimacy-heatmap?
 perceived-legitimacy-heatmap?
-0
+1
 1
 -1000
 
@@ -1073,7 +1073,7 @@ CHOOSER
 642
 Cop-Model
 Cop-Model
-"Basic" "Advanced"
+"Rule-Based" "HMM"
 0
 
 PLOT
