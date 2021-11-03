@@ -674,24 +674,6 @@ PENS
 "Quiet" 1.0 0 -13345367 true "" "plot count rebels with [ active? = false ]"
 "Jailed" 1.0 0 -7500403 true "" "plot count rebels with [ jailed? = true ]"
 
-PLOT
-498
-296
-903
-530
-Active Rebels
-Time
-Amount
-0.0
-10.0
-0.0
-10.0
-true
-true
-"" ""
-PENS
-"Active Rebels" 1.0 0 -2674135 true "" "plot count rebels with [ active? = true ]"
-
 SWITCH
 12
 527
@@ -996,10 +978,10 @@ perceived-legitimacy-social-media?
 -1000
 
 PLOT
-942
-484
-1340
-662
+498
+306
+896
+522
 Defected cops
 time
 defected cops
