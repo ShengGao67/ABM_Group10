@@ -75,8 +75,8 @@ to setup
   set a4 0.35
   set c1 0.6
   set c2 0.4
-  set cop-defect-threshold 0.5
-  set active-rebels-contact-threshold 0.5
+  set cop-defect-threshold 0.55
+  set active-rebels-contact-threshold 0.70
   ifelse area-seed = 0 [random-seed new-seed] [random-seed area-seed]
   setup-patches
   setup-turtles
@@ -576,7 +576,7 @@ legitimacy
 legitimacy
 0
 1
-1.0
+0.6
 0.01
 1
 NIL
@@ -591,7 +591,7 @@ cop-vision
 cop-vision
 0
 10
-1.5
+2.0
 0.1
 1
 NIL
@@ -994,6 +994,24 @@ perceived-legitimacy-social-media?
 1
 1
 -1000
+
+PLOT
+942
+484
+1340
+662
+Defected cops
+time
+defected cops
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"defected" 1.0 0 -13840069 true "" "plot count cops with [ not-defected? = false ]"
 
 @#$#@#$#@
 ## WHAT IS IT?
