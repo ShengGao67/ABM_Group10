@@ -11,6 +11,7 @@ globals
   a4
   c1
   c2
+  m_def_T
 ]
 
 breed [rebels rebel]
@@ -40,6 +41,15 @@ rebels-own
 
 cops-own
 [
+  m_temperament_weights ; m - Advanced Model, all variables and parameters wirh AM prefix is to indicate model specific values
+  m_considerate_variable
+  m_defected?
+  m_notdefected?
+  m_temperament_weights_percentage
+  m_pchance_val
+  m_ps1
+  m_pdef
+  m_chance
   target
   c-hardship
   c-grievance
@@ -77,6 +87,7 @@ to setup
   set c2 0.4
   set cop-defect-threshold 0.55
   set active-rebels-contact-threshold 0.70
+  set m_def_T 0.7
   ifelse area-seed = 0 [random-seed new-seed] [random-seed area-seed]
   setup-patches
   setup-turtles
@@ -138,6 +149,8 @@ to setup-turtles
   ;; non-defection cop candidates
   create-cops floor((initial-cop-density * (100 - defect-cop-candidates-percent) / 100) * count patches)
   [
+    set m_temperament_weights random 3.5
+    set m_considerate_variable random-float 1
     move-to one-of patches with [not any? turtles-here]
     set color black
     set size 0.9
@@ -145,11 +158,15 @@ to setup-turtles
     set c-bias random-float 0.7
     set c-greed random-float 0.5
     set not-defected? true
+    set m_Defected? false
+    set m_NotDefected? true
   ]
 
   ;; plausible defection cop candidates
   create-cops ceiling(initial-cop-density * (defect-cop-candidates-percent / 100) * count patches)
   [
+    set m_temperament_weights random 3.5
+    set m_considerate_variable random-float 1
     move-to one-of patches with [not any? turtles-here]
     set color black
     set size 0.9
@@ -157,6 +174,8 @@ to setup-turtles
     set c-bias 0.7 + random-float 0.3
     set c-greed 0.5 + random-float 0.5
     set not-defected? true
+    set m_defected? false
+    set m_notdefected? true
   ]
 end
 
@@ -262,7 +281,6 @@ end
 
 to cop-rule ;; The cop rule: first, a cop moves, then they possibly defect, then, if they have not defected, they arrest a nearby active rebel
   ask cops [
-
     ;; Move
     if cop-movement != "Off"
       [
@@ -271,6 +289,12 @@ to cop-rule ;; The cop rule: first, a cop moves, then they possibly defect, then
         [move-to movement-patch]
       ]
 
+    ifelse Cop-Model = "Advanced"
+    [
+      if m_notdefected? [ m_determine-enforce ]
+
+    ]
+    [
     ;; Defect (or not)
     set c-tendency-greed (1 - cop-benefits) * c-greed
     set c-tendency-grievance c-hardship * (1 - cop-perceived-legitimacy)
@@ -295,7 +319,7 @@ to cop-rule ;; The cop rule: first, a cop moves, then they possibly defect, then
           cop-become-non-defect
         ]
       ]
-    ]
+     ]
 
     ;; Arrest active rebel (if there is one in vision)
     if not-defected?
@@ -307,6 +331,7 @@ to cop-rule ;; The cop rule: first, a cop moves, then they possibly defect, then
       [
         if movement-patch != nobody [ move-to movement-patch ]
       ]
+    ]
     ]
   ]
 end
@@ -322,6 +347,52 @@ to arrest-target  ;; A cop arrests an active rebel
    ]
 end
 
+to m_determine-enforce
+  set m_defected? (m_considerate_variable > 0.6 and m_social_wellbeing > m_def_T)
+  if m_chance >= 0.9559 and m_defected?
+  [
+    set m_notdefected? false
+    set m_pdef 1
+  ]
+  if m_chance < 0.9559 and m_defected?
+  [
+    if m_temperament_weights = 1
+    [
+      set m_notdefected? true
+      set m_defected? true
+      set m_pdef 2
+    ]
+  ]
+  ifelse m_notdefected?
+    [
+      set target one-of (rebels-on patches in-radius cop-vision) with [ active? = true and jailed? = false ]
+      if target != nobody
+      [ set movement-patch target arrest-target ]
+      if cop-movement != "Off"
+      [
+        if movement-patch != nobody [ move-to movement-patch ]
+      ]
+    ]
+  [cop-movement-rule]
+end
+
+to-report m_social_wellbeing
+  set c-count-rebels count rebels
+  set c-count-rebels-active count rebels with [ active? = true ]
+  if c-count-rebels-active = 0 [set c-count-rebels-active 1]
+  if c-count-rebels-active > 1 [set c-count-rebels-active count rebels with [ active? = true ]]
+  report ((1 / (c-count-rebels / c-count-rebels-active)) + (0.7 * Legitimacy ))
+end
+
+to-report m_chance_of_defect
+  (ifelse
+    m_temperament_weights = 0 [set m_temperament_weights_percentage 25]
+    m_temperament_weights = 1 [set m_temperament_weights_percentage 45]
+    m_temperament_weights = 2 [set m_temperament_weights_percentage 65]
+    [set m_temperament_weights_percentage 85])
+  set m_pchance_val m_ps1 / 100 * m_temperament_weights_percentage
+  report 0.1833 + m_pchance_val
+end
 
 to rebel-movement-rule ;; There are several options for rebel movement
 
@@ -546,7 +617,7 @@ initial-rebel-density
 initial-rebel-density
 0
 1
-0.7
+0.61
 0.01
 1
 NIL
@@ -561,7 +632,7 @@ initial-cop-density
 initial-cop-density
 0
 1
-0.04
+0.223
 0.001
 1
 NIL
@@ -576,7 +647,7 @@ legitimacy
 legitimacy
 0
 1
-0.6
+0.2
 0.01
 1
 NIL
@@ -705,7 +776,7 @@ defect-cop-candidates-percent
 defect-cop-candidates-percent
 0
 100
-0.0
+14.0
 1
 1
 %
@@ -735,7 +806,7 @@ cop-perceived-legitimacy
 cop-perceived-legitimacy
 0
 1
-0.65
+0.22
 0.01
 1
 NIL
@@ -743,9 +814,9 @@ HORIZONTAL
 
 MONITOR
 563
-543
+528
 684
-588
+573
 defect-cop-candidates
 ceiling(initial-cop-density * (defect-cop-candidates-percent / 100) * count patches)
 17
@@ -754,9 +825,9 @@ ceiling(initial-cop-density * (defect-cop-candidates-percent / 100) * count patc
 
 MONITOR
 694
-544
+528
 842
-589
+573
 loyal-cop-candidates
 floor((initial-cop-density * (100 - defect-cop-candidates-percent) / 100) * count patches)
 17
@@ -765,9 +836,9 @@ floor((initial-cop-density * (100 - defect-cop-candidates-percent) / 100) * coun
 
 MONITOR
 854
-545
+529
 920
-590
+574
 total-cops
 floor(initial-cop-density * count patches)
 1
@@ -776,9 +847,9 @@ floor(initial-cop-density * count patches)
 
 MONITOR
 474
-543
+528
 556
-588
+573
 defected-cops
 count cops with [ not-defected? = false ]
 17
@@ -793,7 +864,7 @@ CHOOSER
 rebel-movement
 rebel-movement
 "Off" "Random" "Avoidance" "Custom"
-1
+0
 
 CHOOSER
 245
@@ -803,7 +874,7 @@ CHOOSER
 cop-movement
 cop-movement
 "Off" "Random" "Custom"
-1
+0
 
 SWITCH
 247
@@ -940,15 +1011,15 @@ SWITCH
 625
 perceived-legitimacy-heatmap?
 perceived-legitimacy-heatmap?
-1
+0
 1
 -1000
 
 SWITCH
 245
-631
+635
 357
-664
+668
 show-rebels?
 show-rebels?
 0
@@ -956,10 +1027,10 @@ show-rebels?
 -1000
 
 SWITCH
-363
-631
-469
-664
+362
+635
+468
+668
 show-cops?
 show-cops?
 0
@@ -968,9 +1039,9 @@ show-cops?
 
 SWITCH
 9
-623
+627
 226
-656
+660
 perceived-legitimacy-social-media?
 perceived-legitimacy-social-media?
 1
@@ -994,6 +1065,118 @@ false
 "" ""
 PENS
 "defected" 1.0 0 -13840069 true "" "plot count cops with [ not-defected? = false ]"
+
+CHOOSER
+477
+597
+615
+642
+Cop-Model
+Cop-Model
+"Basic" "Advanced"
+0
+
+PLOT
+930
+477
+1137
+667
+plot 1
+Time
+Want to defect
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot count cops with [m_notdefected? and m_defected?]"
+
+MONITOR
+856
+580
+919
+625
+Choleric
+count cops with [m_temperament_weights = 0]
+17
+1
+11
+
+MONITOR
+702
+577
+764
+622
+Sanguine
+count cops with [m_temperament_weights = 1]
+17
+1
+11
+
+MONITOR
+773
+578
+847
+623
+Phlegmatic
+count cops with [m_temperament_weights = 2]
+17
+1
+11
+
+MONITOR
+621
+576
+695
+621
+Melancholic
+count cops with [m_temperament_weights = 3]
+17
+1
+11
+
+PLOT
+1150
+477
+1345
+667
+DefectedCops
+time
+defect
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot count cops with [m_defected? and not m_notdefected?]"
+
+MONITOR
+621
+628
+700
+673
+# of rebels
+count rebels
+17
+1
+11
+
+MONITOR
+710
+628
+812
+673
+Want to Defect
+count cops with [m_Pdef = 2]
+17
+1
+11
 
 @#$#@#$#@
 ## WHAT IS IT?
