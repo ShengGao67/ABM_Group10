@@ -434,31 +434,33 @@ end
 
 to perceived-legitimacy-rule
   let partner self
-  ifelse perceived-legitimacy-social-media? [set partner one-of rebels with [ jailed? = false ]] [set partner one-of rebels in-radius rebel-vision with [ jailed? = false ]]
+  ifelse perceived-legitimacy-social-media? [set partner one-of other rebels with [ jailed? = false ]] [set partner one-of other rebels in-radius rebel-vision with [ jailed? = false ]]
 
-  let partner-perceived-legitimacy [ perceived-legitimacy ] of partner
+  if partner != nobody [
+    let partner-perceived-legitimacy [ perceived-legitimacy ] of partner
 
-  (ifelse
-    perceived-legitimacy > partner-perceived-legitimacy [
-      let difference perceived-legitimacy - partner-perceived-legitimacy
-      set perceived-legitimacy perceived-legitimacy - 0.1 * difference
-      set partner-perceived-legitimacy partner-perceived-legitimacy + 0.1 * difference
-    ]
-    perceived-legitimacy < partner-perceived-legitimacy [
-      let difference partner-perceived-legitimacy - perceived-legitimacy
-      set perceived-legitimacy perceived-legitimacy + 0.1 * difference
-      set partner-perceived-legitimacy partner-perceived-legitimacy - 0.1 * difference
+    (ifelse
+      perceived-legitimacy > partner-perceived-legitimacy [
+        let difference perceived-legitimacy - partner-perceived-legitimacy
+        set perceived-legitimacy perceived-legitimacy - 0.1 * difference
+        set partner-perceived-legitimacy partner-perceived-legitimacy + 0.1 * difference
+      ]
+      perceived-legitimacy < partner-perceived-legitimacy [
+        let difference partner-perceived-legitimacy - perceived-legitimacy
+        set perceived-legitimacy perceived-legitimacy + 0.1 * difference
+        set partner-perceived-legitimacy partner-perceived-legitimacy - 0.1 * difference
     ])
-  set perceived-legitimacy perceived-legitimacy + random-float -0.1 + random-float 0.1
-  if perceived-legitimacy > 1 [ set perceived-legitimacy 1 ]
-  if perceived-legitimacy < 0 [ set perceived-legitimacy 0 ]
-  set talked? true
-  ask partner [
-    set perceived-legitimacy partner-perceived-legitimacy
     set perceived-legitimacy perceived-legitimacy + random-float -0.1 + random-float 0.1
     if perceived-legitimacy > 1 [ set perceived-legitimacy 1 ]
     if perceived-legitimacy < 0 [ set perceived-legitimacy 0 ]
     set talked? true
+    ask partner [
+      set perceived-legitimacy partner-perceived-legitimacy
+      set perceived-legitimacy perceived-legitimacy + random-float -0.1 + random-float 0.1
+      if perceived-legitimacy > 1 [ set perceived-legitimacy 1 ]
+      if perceived-legitimacy < 0 [ set perceived-legitimacy 0 ]
+      set talked? true
+    ]
   ]
 end
 
