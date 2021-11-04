@@ -434,7 +434,7 @@ end
 
 to perceived-legitimacy-rule
   let partner self
-  ifelse perceived-legitimacy-social-media? [set partner one-of other rebels with [ jailed? = false ]] [set partner one-of other rebels in-radius rebel-vision with [ jailed? = false ]]
+  ifelse perceived-legitimacy-social-media? [set partner one-of other rebels with [ jailed? = false and talked? = false ]] [set partner one-of other rebels in-radius rebel-vision with [ jailed? = false and talked? = false ]]
 
   if partner != nobody [
     let partner-perceived-legitimacy [ perceived-legitimacy ] of partner
