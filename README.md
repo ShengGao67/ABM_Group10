@@ -1,7 +1,7 @@
 # A02 - modeling civil violence
 
 ## Welcome to the repo
-* This repo contains implementation of multi-agent models for study of effects of social media and cop defection considering Epstein's model as the base model.
+* This repo contains implementation of multi-agent system based models for study of effects of social media and cop defection using Epstein's model as the base model.
 
 ## Info
 * Project for Master's course "Design of Multi Agent Systems" at University of Groningen.
